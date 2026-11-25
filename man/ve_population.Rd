@@ -18,10 +18,10 @@ value in \code{scenario_params.rds}); if neither exists, the last whole
 reporting day, with a message.}
 }
 \value{
-A data frame with one row per person: the demographic columns plus
-\code{time_of_vaccination}, \code{time_of_reporting} (\code{NA} if never vaccinated /
-reported), and logical \code{vaccinated} and \code{infected}. The study end is
-stored in the \code{"study_end"} attribute.
+A data frame with one row per person: the demographic columns,
+\code{time_of_vaccination} and \code{time_of_reporting} (\code{NA} if none), and logical
+\code{vaccinated} and \code{infected}. The study end is stored in the
+\code{"study_end"} attribute.
 }
 \description{
 Joins demographic, vaccination and reported-case data into one row per

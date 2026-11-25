@@ -34,5 +34,7 @@ for vaccination, \eqn{\gamma(t)}, follows a random walk over days since
 vaccination:
 \deqn{\log \mu = \log\beta + \log \bar I + \log(\text{person-days}) +
   \gamma(t)\,\text{vax}.}
-VE is \eqn{1 - \exp(\gamma(t))}. Requires \pkg{cmdstanr} and CmdStan.
+VE is \eqn{1 - \exp(\gamma(t))}. Requires
+\href{https://mc-stan.org/cmdstanr/}{cmdstanr} and CmdStan. The compiled model
+is cached in \code{tools::R_user_dir("surviver", "cache")}.
 }

@@ -1,7 +1,8 @@
 ## POLYMOD contact matrix for the Netherlands, aggregated to surviver's
-## default age groups. Originally computed in the Lorentz workshop repository
-## (analysis/group-D/prepare_stan_data.R); reproduced exactly with
-## socialmixr 0.6.x.
+## default age groups (Mossong et al. 2008, doi:10.1371/journal.pmed.0050074).
+## Originally computed in analysis/group-D/prepare_stan_data.R of
+## https://github.com/kylieainslie/lorentz_center_workshop (branch group-D);
+## reproduced exactly with socialmixr 0.6.
 ##
 ## socialmixr >= 0.6.0 warns that the automatic country-population lookup
 ## used here is deprecated; a future version will need `survey_pop` supplied.

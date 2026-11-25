@@ -27,7 +27,7 @@ A square numeric matrix with dimnames \code{age_group} (rows) and
 \code{contact_age_group} (columns).
 }
 \description{
-Computes the age-by-age contact matrix that HERMES effectively uses for
+Computes the age-by-age contact matrix that \href{https://github.com/lwillem/ibm_hermes}{HERMES} effectively uses for
 transmission, from the household, school-class and workplace structure of
 a simulated population.
 }

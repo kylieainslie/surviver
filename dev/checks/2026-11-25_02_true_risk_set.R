@@ -1,4 +1,4 @@
-# Lab notebook 2026-11-25 #2. Run from the package root; needs cmdstanr and a local ibm_hermes clone (HERMES_PATH).
+# Lab notebook entry 8 (2026-11-25). Run from the package root; needs cmdstanr and a local ibm_hermes clone (HERMES_PATH).
 # Does removing unreported (but immune) infections from the risk set fix the
 # late downward bias in VE(t)? Same model, same events (reported cases at
 # report day), same FoI; only change: people infected but never reported

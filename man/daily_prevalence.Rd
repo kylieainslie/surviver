@@ -15,8 +15,9 @@ daily_prevalence(incidence, duration_infection = 7, reporting_delay = 2)
 }
 \value{
 A tibble with one row per \code{day} x \code{age_group} x \code{vax_status}
-(vaccination status at reporting) and column \code{n_infectious}. Days run
-from the earliest infectious day to the last study day.
+(vaccination status at reporting) and column \code{n_infectious}, from day 0
+(or earlier, if a case was infectious before day 0) to the last study
+day.
 }
 \description{
 Approximates the number of people infectious on each day from reported

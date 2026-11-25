@@ -1,4 +1,4 @@
-# Lab notebook 2026-11-25: describe the packaged simulated datasets
+# Lab notebook entry 5 (2026-11-25): describe the packaged simulated datasets
 # (ve_sim_waning, ve_sim_no_waning). Run from the package root; seconds.
 devtools::load_all(quiet = TRUE)
 out_dir <- Sys.getenv("SURVIVER_CHECKS_OUT", file.path(tempdir(), "surviver-checks"))

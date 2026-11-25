@@ -12,8 +12,8 @@ of daily contacts a person in group \code{i} has with people in group \code{j}.
 \source{
 Mossong J, et al. (2008) Social contacts and mixing patterns
 relevant to the spread of infectious diseases. \emph{PLoS Med} 5(3):e74.
-Computed with \code{\link[socialmixr:contact_matrix]{socialmixr::contact_matrix()}}; see
-\code{data-raw/polymod_nl.R}.
+\doi{10.1371/journal.pmed.0050074}. Computed with
+\code{socialmixr::contact_matrix()}; see \code{data-raw/polymod_nl.R}.
 }
 \usage{
 polymod_nl

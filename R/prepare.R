@@ -25,10 +25,10 @@ default_age_labels <- c("0-4", "5-17", "18-49", "50-64", "65+")
 #'   value in `scenario_params.rds`); if neither exists, the last whole
 #'   reporting day, with a message.
 #'
-#' @return A data frame with one row per person: the demographic columns plus
-#'   `time_of_vaccination`, `time_of_reporting` (`NA` if never vaccinated /
-#'   reported), and logical `vaccinated` and `infected`. The study end is
-#'   stored in the `"study_end"` attribute.
+#' @return A data frame with one row per person: the demographic columns,
+#'   `time_of_vaccination` and `time_of_reporting` (`NA` if none), and logical
+#'   `vaccinated` and `infected`. The study end is stored in the
+#'   `"study_end"` attribute.
 #' @export
 #' @examples
 #' pop <- ve_population(ve_sim_waning)
@@ -184,8 +184,9 @@ daily_incidence <- function(pop,
 #' @param reporting_delay Days from start of infectiousness to reporting.
 #'
 #' @return A tibble with one row per `day` x `age_group` x `vax_status`
-#'   (vaccination status at reporting) and column `n_infectious`. Days run
-#'   from the earliest infectious day to the last study day.
+#'   (vaccination status at reporting) and column `n_infectious`, from day 0
+#'   (or earlier, if a case was infectious before day 0) to the last study
+#'   day.
 #' @export
 daily_prevalence <- function(incidence,
                              duration_infection = 7,
@@ -344,10 +345,9 @@ check_study_end <- function(study_end) {
 #' shortly after vaccination may have been infected before it. Pass the
 #' result to `counting_process(censor_at_vaccination = )`.
 #'
-#' Censoring these people removes misclassified cases but also genuine early
-#' vaccine failures, which tends to overstate VE in the first days after
-#' vaccination. Choose `window` with that trade-off in mind (e.g. the upper
-#' range of incubation period plus reporting delay).
+#' Censoring also removes some genuine early vaccine failures, so VE is not
+#' estimable for the first `window` days after vaccination. Longer windows
+#' catch more prior infections but discard more genuine cases.
 #'
 #' @param pop Person-level data from [ve_population()].
 #' @param window Days after vaccination within which a report triggers

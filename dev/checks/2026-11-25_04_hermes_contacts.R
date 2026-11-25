@@ -1,4 +1,4 @@
-# Lab notebook 2026-11-25 #10: FoI built from the HERMES contact structure
+# Lab notebook entry 10 (2026-11-25): FoI built from the HERMES contact structure
 # instead of POLYMOD. Run from the package root; needs cmdstanr; ~5 minutes.
 devtools::load_all(quiet = TRUE)
 out_dir <- Sys.getenv("SURVIVER_CHECKS_OUT", file.path(tempdir(), "surviver-checks"))

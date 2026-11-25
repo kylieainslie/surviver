@@ -1,4 +1,4 @@
-# Lab notebook 2026-11-26 #11: HERMES vaccinates infected and recovered
+# Lab notebook entry 11 (2026-11-26): HERMES vaccinates infected and recovered
 # people, and vaccination resets their state to V (susceptible with vaccine
 # protection). How often does this happen, and how many cases among
 # vaccinated people does it produce?

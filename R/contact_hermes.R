@@ -1,6 +1,6 @@
 #' Contact matrix implied by a HERMES population
 #'
-#' Computes the age-by-age contact matrix that HERMES effectively uses for
+#' Computes the age-by-age contact matrix that [HERMES](https://github.com/lwillem/ibm_hermes) effectively uses for
 #' transmission, from the household, school-class and workplace structure of
 #' a simulated population.
 #'

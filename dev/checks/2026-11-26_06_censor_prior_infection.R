@@ -1,4 +1,4 @@
-# Lab notebook 2026-11-26 #12: censoring people infected before vaccination.
+# Lab notebook entry 12 (2026-11-26): censoring people infected before vaccination.
 # Compares no censoring, an oracle rule (true infection status from HERMES)
 # and observable window rules (reported within k days of vaccination).
 # Run from the package root; needs cmdstanr and a local ibm_hermes clone

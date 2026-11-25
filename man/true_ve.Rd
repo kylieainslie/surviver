@@ -18,7 +18,8 @@ Numeric vector of VE values.
 \description{
 Linear rise from 0 to \code{vaccine_effectiveness} over \code{ve_ramp_days}, then
 exponential decay with half-life \code{ve_half_life} towards \code{ve_floor}. Matches
-\code{compute_time_varying_ve()} in HERMES.
+\code{compute_time_varying_ve()} in the
+\href{https://github.com/kylieainslie/ibm_hermes/tree/waning-vaccine-effectiveness}{HERMES waning-VE extension}.
 }
 \examples{
 true_ve(c(7, 14, 59), ve_sim_waning$params)

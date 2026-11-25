@@ -71,7 +71,9 @@ ve_stan_file <- function(model = c("noncentered", "centered")) {
 #' vaccination:
 #' \deqn{\log \mu = \log\beta + \log \bar I + \log(\text{person-days}) +
 #'   \gamma(t)\,\text{vax}.}
-#' VE is \eqn{1 - \exp(\gamma(t))}. Requires \pkg{cmdstanr} and CmdStan.
+#' VE is \eqn{1 - \exp(\gamma(t))}. Requires
+#' [cmdstanr](https://mc-stan.org/cmdstanr/) and CmdStan. The compiled model
+#' is cached in `tools::R_user_dir("surviver", "cache")`.
 #'
 #' @param stan_data Output of [make_stan_data()], or its `data` element.
 #' @param model Stan model; see [ve_stan_file()].
@@ -144,7 +146,8 @@ extract_ve <- function(fit, probs = c(0.05, 0.95)) {
 #'
 #' Linear rise from 0 to `vaccine_effectiveness` over `ve_ramp_days`, then
 #' exponential decay with half-life `ve_half_life` towards `ve_floor`. Matches
-#' `compute_time_varying_ve()` in HERMES.
+#' `compute_time_varying_ve()` in the
+#' [HERMES waning-VE extension](https://github.com/kylieainslie/ibm_hermes/tree/waning-vaccine-effectiveness).
 #'
 #' @param t Days since vaccination.
 #' @param params A list with `vaccine_effectiveness`, `ve_ramp_days`,

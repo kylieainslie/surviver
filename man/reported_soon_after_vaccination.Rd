@@ -24,10 +24,9 @@ shortly after vaccination may have been infected before it. Pass the
 result to \code{counting_process(censor_at_vaccination = )}.
 }
 \details{
-Censoring these people removes misclassified cases but also genuine early
-vaccine failures, which tends to overstate VE in the first days after
-vaccination. Choose \code{window} with that trade-off in mind (e.g. the upper
-range of incubation period plus reporting delay).
+Censoring also removes some genuine early vaccine failures, so VE is not
+estimable for the first \code{window} days after vaccination. Longer windows
+catch more prior infections but discard more genuine cases.
 }
 \examples{
 pop <- ve_population(ve_sim_waning)

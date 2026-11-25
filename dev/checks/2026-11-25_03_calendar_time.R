@@ -1,4 +1,4 @@
-# Lab notebook 2026-11-25 #3. Run from the package root; base R glm only, runs in seconds.
+# Lab notebook entry 9 (2026-11-25). Run from the package root; base R glm only, runs in seconds.
 # Is the late VE drop caused by calendar time leaking into time since
 # vaccination? Compare piecewise-constant VE from Poisson GLMs on the same
 # cells as the Stan model, with and without per-day baselines.

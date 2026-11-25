@@ -1,8 +1,9 @@
 ## Simulated ground-truth datasets for time-varying VE: ve_sim_waning and
 ## ve_sim_no_waning.
 ##
-## Generated with the HERMES individual-based model, waning-VE extension:
-##   https://github.com/kylieainslie/ibm_hermes  (branch waning-vaccine-effectiveness)
+## Generated with HERMES (https://github.com/lwillem/ibm_hermes), using the
+## waning-VE extension on the waning-vaccine-effectiveness branch of
+## https://github.com/kylieainslie/ibm_hermes
 ##
 ## Requires a local clone of ibm_hermes. Point HERMES_PATH at it if it is not
 ## at ~/Documents/ibm_hermes, e.g. in ~/.Renviron:
