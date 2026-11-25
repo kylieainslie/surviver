@@ -7,6 +7,7 @@
 counting_process(
   cohort,
   study_end = attr(cohort, "study_end"),
+  censor_at_vaccination = NULL,
   age_breaks = default_age_breaks,
   age_labels = default_age_labels
 )
@@ -16,6 +17,10 @@ counting_process(
 \code{\link[=sample_cohort]{sample_cohort()}}.}
 
 \item{study_end}{Last day of follow-up.}
+
+\item{censor_at_vaccination}{Optional vector of \code{ind_id}s to censor at
+their vaccination date. Ignored for people who are unvaccinated or whose
+follow-up ends before vaccination.}
 
 \item{age_breaks, age_labels}{Passed to \code{\link[=cut]{cut()}} (left-closed intervals).}
 }
@@ -29,4 +34,14 @@ Splits each person's follow-up at vaccination, giving \verb{(tstart, tstop]}
 intervals with \code{vax_status} 0 before and 1 after vaccination. Follow-up
 ends at reporting (\code{event = 1}) or \code{study_end} (censored); cases reported
 after \code{study_end} are censored at \code{study_end}.
+}
+\details{
+People reported before their vaccination date are already handled: their
+follow-up ends at the report, so they never count as vaccinated. People
+infected before vaccination but reported after it would otherwise count
+as vaccinated cases. \code{censor_at_vaccination} lets these be censored at
+their vaccination date instead (follow-up ends unvaccinated, no event).
+Which people to censor is the analyst's choice; see
+\code{\link[=reported_soon_after_vaccination]{reported_soon_after_vaccination()}} for a rule based only on observed
+dates.
 }

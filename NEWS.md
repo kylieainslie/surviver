@@ -1,4 +1,4 @@
-# surviver (development version)
+# surviver 0.0.0.9000
 
 * Initial package, consolidating the Group D analysis from the Lorentz
   Center workshop (June 2026).
@@ -9,6 +9,9 @@
   `age_group_sizes()`, `contact_matrix_hermes()`.
 * Model: `make_stan_data()`, `fit_ve()` with non-centred (default) and
   centred Stan models, `extract_ve()`, `plot_ve()`.
+* `counting_process(censor_at_vaccination = )` and
+  `reported_soon_after_vaccination()` to censor people infected before
+  vaccination but reported after it.
 * Validation helpers: `true_ve()`, `simulate_counts()`.
 * Datasets: `ve_sim_waning`, `ve_sim_no_waning` (HERMES simulations with
   known VE(t)) and `polymod_nl`.

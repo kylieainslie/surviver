@@ -117,3 +117,29 @@ test_that("missing study_end gives an informative error", {
   attr(pop, "study_end") <- NULL
   expect_error(daily_incidence(pop), "study_end")
 })
+
+test_that("censor_at_vaccination ends follow-up at vaccination without an event", {
+  pop <- ve_population(toy)
+  cp  <- counting_process(pop, censor_at_vaccination = c("B", "C", "A"))
+  # B: vaccinated day 3, reported day 6 -> censored at 3, unvaccinated, no event
+  b <- cp[cp$ind_id == "B", ]
+  expect_equal(nrow(b), 1)
+  expect_equal(b$tstop, 3)
+  expect_equal(b$event, 0)
+  expect_equal(b$vax_status, 0L)
+  expect_equal(b$time_of_vaccination, 3)
+  # C: reported (day 4) before vaccination (day 7) -> unchanged
+  expect_equal(cp[cp$ind_id == "C", "event"], 1)
+  # A: never vaccinated -> unchanged
+  expect_equal(cp[cp$ind_id == "A", "tstop"], 10)
+  # D not listed -> unchanged
+  expect_equal(nrow(cp[cp$ind_id == "D", ]), 2)
+})
+
+test_that("reported_soon_after_vaccination applies the window", {
+  pop <- ve_population(toy)
+  # B: reported 3 days after vaccination; D: 10 days after; C: before
+  expect_equal(reported_soon_after_vaccination(pop, 3), "B")
+  expect_setequal(reported_soon_after_vaccination(pop, 10), c("B", "D"))
+  expect_length(reported_soon_after_vaccination(pop, 2), 0)
+})

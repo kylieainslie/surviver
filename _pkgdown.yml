@@ -27,6 +27,7 @@ reference:
       - default_age_breaks
       - daily_incidence
       - counting_process
+      - reported_soon_after_vaccination
       - expand_person_days
   - title: Exposure
     desc: Daily infectious pressure (force of infection) by age group.

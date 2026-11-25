@@ -206,15 +206,23 @@ simulate_counts <- function(stan_data, log_beta, gamma, seed = NULL) {
 #' @export
 plot_ve <- function(ve, truth = NULL, colour = NULL, max_days = NULL) {
   rlang::check_installed("ggplot2", reason = "to plot VE.")
-  aes_col <- if (is.null(colour)) NULL else rlang::sym(colour)
-  p <- ggplot2::ggplot(ve, ggplot2::aes(.data$days_since_vax, .data$median,
-                                        colour = !!aes_col, fill = !!aes_col)) +
+  mapping <- if (is.null(colour)) {
+    ggplot2::aes(.data$days_since_vax, .data$median)
+  } else {
+    ggplot2::aes(.data$days_since_vax, .data$median,
+                 colour = .data[[colour]], fill = .data[[colour]])
+  }
+  ribbon_args <- list(ggplot2::aes(ymin = .data$lower, ymax = .data$upper),
+                      alpha = 0.2, colour = NA)
+  line_args <- list(linewidth = 0.9)
+  if (is.null(colour)) {
+    ribbon_args$fill <- "steelblue"
+    line_args$colour <- "steelblue"
+  }
+  p <- ggplot2::ggplot(ve, mapping) +
     ggplot2::geom_hline(yintercept = 0, colour = "grey60") +
-    ggplot2::geom_ribbon(ggplot2::aes(ymin = .data$lower, ymax = .data$upper),
-                         alpha = 0.2, colour = NA,
-                         fill = if (is.null(colour)) "steelblue" else NULL) +
-    ggplot2::geom_line(linewidth = 0.9,
-                       colour = if (is.null(colour)) "steelblue" else NULL)
+    do.call(ggplot2::geom_ribbon, ribbon_args) +
+    do.call(ggplot2::geom_line, line_args)
   if (!is.null(truth)) {
     days <- seq(0, max(ve$days_since_vax))
     p <- p + ggplot2::geom_line(

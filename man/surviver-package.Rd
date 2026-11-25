@@ -8,6 +8,15 @@
 \description{
 Methods for estimating vaccine effectiveness as a function of time since vaccination from individual-level surveillance data, including simulated ground-truth datasets for validating estimators.
 }
+\seealso{
+Useful links:
+\itemize{
+  \item \url{https://kylieainslie.github.io/surviver/}
+  \item \url{https://github.com/kylieainslie/surviver}
+  \item Report bugs at \url{https://github.com/kylieainslie/surviver/issues}
+}
+
+}
 \author{
 \strong{Maintainer}: Kylie Ainslie \email{ainslie.kylie@gmail.com}
 

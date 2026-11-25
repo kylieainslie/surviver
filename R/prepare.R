@@ -220,9 +220,21 @@ daily_prevalence <- function(incidence,
 #' ends at reporting (`event = 1`) or `study_end` (censored); cases reported
 #' after `study_end` are censored at `study_end`.
 #'
+#' People reported before their vaccination date are already handled: their
+#' follow-up ends at the report, so they never count as vaccinated. People
+#' infected before vaccination but reported after it would otherwise count
+#' as vaccinated cases. `censor_at_vaccination` lets these be censored at
+#' their vaccination date instead (follow-up ends unvaccinated, no event).
+#' Which people to censor is the analyst's choice; see
+#' [reported_soon_after_vaccination()] for a rule based only on observed
+#' dates.
+#'
 #' @param cohort Person-level data from [ve_population()] or
 #'   [sample_cohort()].
 #' @param study_end Last day of follow-up.
+#' @param censor_at_vaccination Optional vector of `ind_id`s to censor at
+#'   their vaccination date. Ignored for people who are unvaccinated or whose
+#'   follow-up ends before vaccination.
 #' @inheritParams add_age_group
 #'
 #' @return A data frame from [survival::tmerge()] with `ind_id`, `age`,
@@ -231,6 +243,7 @@ daily_prevalence <- function(incidence,
 #' @export
 counting_process <- function(cohort,
                              study_end  = attr(cohort, "study_end"),
+                             censor_at_vaccination = NULL,
                              age_breaks = default_age_breaks,
                              age_labels = default_age_labels) {
   check_study_end(study_end)
@@ -242,6 +255,16 @@ counting_process <- function(cohort,
       tstop = dplyr::if_else(.data$event == 1L,
                              .data$time_of_reporting, as.numeric(study_end))
     )
+
+  if (!is.null(censor_at_vaccination)) {
+    cens <- base$ind_id %in% censor_at_vaccination & base$vaccinated &
+      base$time_of_vaccination < base$tstop
+    base$tstop[cens] <- base$time_of_vaccination[cens]
+    base$event[cens] <- 0L
+    # follow-up now ends at vaccination, so no vaccinated interval is created
+    base$vaccinated[cens] <- FALSE
+  }
+
   if (any(base$tstop <= 0)) {
     warning(sum(base$tstop <= 0), " people reported on or before day 0 ",
             "were dropped.", call. = FALSE)
@@ -310,4 +333,34 @@ check_study_end <- function(study_end) {
          call. = FALSE)
   }
   invisible(study_end)
+}
+
+#' People reported soon after vaccination
+#'
+#' A rule, based only on observed dates, for identifying vaccinated people
+#' who may have been infected before vaccination: those reported within
+#' `window` days after their vaccination date. Infection precedes reporting
+#' by the incubation period plus the reporting delay, so a case reported
+#' shortly after vaccination may have been infected before it. Pass the
+#' result to `counting_process(censor_at_vaccination = )`.
+#'
+#' Censoring these people removes misclassified cases but also genuine early
+#' vaccine failures, which tends to overstate VE in the first days after
+#' vaccination. Choose `window` with that trade-off in mind (e.g. the upper
+#' range of incubation period plus reporting delay).
+#'
+#' @param pop Person-level data from [ve_population()].
+#' @param window Days after vaccination within which a report triggers
+#'   censoring (reports on days `1` to `window` after vaccination).
+#' @return Character vector of `ind_id`s.
+#' @export
+#' @examples
+#' pop <- ve_population(ve_sim_waning)
+#' ids <- reported_soon_after_vaccination(pop, window = 7)
+#' length(ids)
+#' cp <- counting_process(pop, censor_at_vaccination = ids)
+reported_soon_after_vaccination <- function(pop, window) {
+  gap <- pop$time_of_reporting - pop$time_of_vaccination
+  as.character(pop$ind_id[pop$vaccinated & pop$infected & !is.na(gap) &
+                            gap > 0 & gap <= window])
 }

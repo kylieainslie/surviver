@@ -31,16 +31,20 @@ The project started as Group D at the Lorentz Center workshop (June 2026).
 
 **Known limitations** (details in the lab notebook):
 
-- The estimate lags the truth by about a week, because time since
-  vaccination is measured to the report date, not the infection date
-  (entry 7).
+- Time since vaccination is measured to the report date, not the infection
+  date, so the estimate lags the truth (entry 7). People infected before
+  vaccination but reported after it must be censored. The standard analysis
+  now uses `counting_process(censor_at_vaccination =
+  reported_soon_after_vaccination(pop, 7))`, which makes VE for the first 7
+  days after vaccination not estimable (entry 12).
 - Late VE (90+ days) is underestimated in the waning scenario. About half of
   this comes from calendar time being confounded with time since
   vaccination (entry 9).
 - In the current simulations the FoI adds no precision, because vaccination
   is random with respect to exposure (entry 10).
-- HERMES resets the immunity of recovered people when it vaccinates them
-  (entry 11).
+- HERMES vaccinates infectious and recovered people and resets their
+  immunity (entry 11). This is deliberate: real campaigns vaccinate them
+  too, so the analysis censors them instead (entry 12).
 
 ## 2. Where everything lives
 
@@ -230,7 +234,9 @@ run_one <- function(seed, ve_floor) {
   pop  <- ve_population(sim)
   prev <- daily_prevalence(daily_incidence(pop))
   foi  <- force_of_infection(prev, age_group_sizes(pop))
-  sd   <- make_stan_data(expand_person_days(counting_process(pop)), foi)
+  cp   <- counting_process(pop, censor_at_vaccination =
+                             reported_soon_after_vaccination(pop, 7))
+  sd   <- make_stan_data(expand_person_days(cp), foi)
   ve   <- extract_ve(fit_ve(sd, seed = seed, refresh = 0, show_messages = FALSE))
   ve$truth <- true_ve(ve$days_since_vax, sim$params)
   ve$seed  <- seed
@@ -257,17 +263,18 @@ pop_data$health[id_vaccinated] <- states$V
 pop_data$time_of_vaccination[id_vaccinated] <- nprev_days
 ```
 
-- **Stop resetting immunity in recovered people** (lab notebook entry 11):
-  for people in state `R`, record `time_of_vaccination` but leave `health`
-  as `R`. Decide whether infectious people (`I`) should be vaccinated at
-  all.
+- **Vaccinating infectious and recovered people** is kept on purpose,
+  because real campaigns do this too (decided 2026-11-26; lab notebook
+  entries 11 and 12). The analysis censors them instead. If you ever want
+  recovered people to keep their immunity, record `time_of_vaccination` for
+  state `R` but leave `health` as `R`.
 - **Targeted vaccination** (e.g. oldest first): replace `sample()` with a
   selection that prioritises by `pop_data$age`. Add a new parameter (e.g.
   `vaccine_priority = NULL`) and keep the current random selection when it
   is `NULL`, so other scenarios are unchanged.
 
-Both changes alter the simulated data, so regenerate the datasets and add a
-lab-notebook entry.
+Changes to vaccination alter the simulated data, so regenerate the datasets
+and add a lab-notebook entry.
 
 ## 7. Where to go next
 
@@ -279,10 +286,15 @@ In rough order of priority. The lab notebook explains the reasons.
    `day` in its cells; pass a week index to Stan. Add the model name to
    `ve_stan_file()` and `fit_ve()`. Expected to remove the calendar-time
    part of the late underestimate (entry 9).
-2. **Decide on vaccination of recovered people** in HERMES (entry 11) and,
-   if changing it, regenerate the datasets.
-3. **Replicate simulations** (above) to measure bias and coverage properly.
-   Only then judge whether a frailty term is needed.
+2. **Censor people infected before vaccination** in every analysis:
+   `counting_process(pop, censor_at_vaccination =
+   reported_soon_after_vaccination(pop, 7))`, and report VE from day 7
+   (entry 12). The 7-day window suits HERMES's incubation and reporting
+   delay; for real data, base it on published incubation and delay
+   distributions.
+3. **Replicate simulations** (above) to measure bias and coverage properly,
+   including the choice of censoring window. Only then judge whether a
+   frailty term is needed.
 4. **Targeted-vaccination scenario**, to test the project's premise that the
    FoI improves VE estimation when exposure differs between vaccinated and
    unvaccinated people (entry 10).

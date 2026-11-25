@@ -61,14 +61,18 @@ inc  <- daily_incidence(pop)
 prev <- daily_prevalence(inc, duration_infection = 7, reporting_delay = 2)
 foi  <- force_of_infection(prev, age_group_sizes(pop), contact_matrix = polymod_nl)
 
-# person-days split at vaccination, aggregated for Stan
-pd <- expand_person_days(counting_process(pop))
+# person-days split at vaccination, aggregated for Stan. People reported
+# within 7 days of vaccination are censored at vaccination, since they were
+# probably infected before it
+early <- reported_soon_after_vaccination(pop, window = 7)
+pd <- expand_person_days(counting_process(pop, censor_at_vaccination = early))
 sd <- make_stan_data(pd, foi)
 
-# fit and plot against the true curve
+# fit and plot against the true curve (VE is not estimable for the
+# first 7 days after vaccination once early cases are censored)
 fit <- fit_ve(sd, seed = 42)
 ve  <- extract_ve(fit)
-plot_ve(ve, truth = ve_sim_waning$params)
+plot_ve(ve[ve$days_since_vax > 7, ], truth = ve_sim_waning$params)
 ```
 
 To use your own data, pass `ve_population()` a folder containing
@@ -82,7 +86,7 @@ and `incidence` data frames (see `?ve_population`).
 |---|---|
 | Prepare data | `ve_population()`, `sample_cohort()`, `add_age_group()` |
 | Exposure | `daily_incidence()`, `daily_prevalence()`, `force_of_infection()`, `age_group_sizes()` |
-| Survival data | `counting_process()`, `expand_person_days()`, `make_stan_data()` |
+| Survival data | `counting_process()`, `reported_soon_after_vaccination()`, `expand_person_days()`, `make_stan_data()` |
 | Fit and summarise | `fit_ve()`, `extract_ve()`, `plot_ve()` |
 | Validation | `true_ve()`, `simulate_counts()`, `contact_matrix_hermes()` |
 
