@@ -35,6 +35,7 @@
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-articles" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Articles</button>
   <ul class="dropdown-menu" aria-labelledby="dropdown-articles">
 <li><a class="dropdown-item" href="../articles/lab-notebook.html">Lab notebook</a></li>
+    <li><a class="dropdown-item" href="../articles/handover.html">Handover notes</a></li>
   </ul>
 </li>
 <li class="nav-item"><a class="nav-link" href="../news/index.html">Changelog</a></li>
@@ -78,7 +79,7 @@ to <code>$SURVIVER_CHECKS_OUT</code> (default: a temporary folder).</p>
 <div class="section level2">
 <h2 id="status-and-open-questions">Status and open questions<a class="anchor" aria-label="anchor" href="#status-and-open-questions"></a>
 </h2>
-<p><em>Last updated 2026-11-25.</em></p>
+<p><em>Last updated 2026-11-26.</em></p>
 <table class="table">
 <colgroup>
 <col width="33%">
@@ -128,6 +129,14 @@ their precision are unchanged</td>
 <td><a href="#e10">10</a></td>
 </tr>
 <tr class="odd">
+<td>Does HERMES vaccinate people who were already infected, and does it
+matter?</td>
+<td>Yes: about 12% of vaccinations go to recovered people, whose
+immunity is reset. They produce 7–13% of cases among vaccinated people.
+<strong>Open</strong>: fix in HERMES or handle in the analysis</td>
+<td><a href="#e11">11</a></td>
+</tr>
+<tr class="even">
 <td>When should the FoI help?</td>
 <td>
 <strong>Open</strong>: probably only when exposure differs between
@@ -135,19 +144,19 @@ vaccinated and unvaccinated people (e.g. vaccination targeted by age).
 Needs a scenario that tests this</td>
 <td><a href="#e10">10</a></td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td>Is the remaining late bias real or chance?</td>
 <td>
 <strong>Open</strong>: needs replicate simulations</td>
 <td>—</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td>Is a frailty term needed?</td>
 <td>
 <strong>Open</strong>: decide after replicate simulations</td>
 <td>—</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td>What value of <code>theta</code> (infectiousness of vaccinated
 cases) should the case-study analysis use?</td>
 <td>
@@ -157,7 +166,7 @@ the package default is 0</td>
 <a href="#e01">1</a>, <a href="#e06">6</a>
 </td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td>Should the HERMES reporting-seed bug be reported upstream?</td>
 <td>
 <strong>Open</strong>: affects reproducibility of all HERMES
@@ -173,15 +182,19 @@ case-study data</td>
 <li>Let transmission vary over calendar time in the Stan model (e.g. a
 random walk on <code>log_beta</code> by day or week), keeping the FoI
 offset.</li>
+<li>Decide how to handle HERMES vaccinating recovered people (entry 11).
+If HERMES is changed, regenerate the datasets before step 3.</li>
 <li>Run 20–50 replicate HERMES simulations per scenario to measure bias
 and interval coverage, rather than judging from one realisation.</li>
 <li>Simulate a scenario where vaccination is targeted (e.g. by age,
 oldest first), so vaccinated and unvaccinated people face different
 exposure, and test whether the FoI then improves bias or precision.</li>
-<li>Revisit frailty once (1) and (2) are done.</li>
+<li>Revisit frailty once (1) and (3) are done.</li>
 <li>Extend the method to account for the delay between infection and
 reporting.</li>
 </ol>
+<p>See the <a href="handover.html">handover notes</a> for how to do each
+of these.</p>
 </div>
 <div class="section level3">
 <h3 id="timeline">Timeline<a class="anchor" aria-label="anchor" href="#timeline"></a>
@@ -240,6 +253,11 @@ regenerated</a></td>
 <td>2026-11-25</td>
 <td><a href="#e10">10. FoI from the HERMES contact structure instead of
 POLYMOD</a></td>
+</tr>
+<tr class="odd">
+<td>2026-11-26</td>
+<td><a href="#e11">11. HERMES vaccinates infected and recovered
+people</a></td>
 </tr>
 </tbody>
 </table>
@@ -1449,6 +1467,116 @@ it.</p>
 <p><strong>Conclusion.</strong> Use of POLYMOD is not what limits the
 method on these data. Added next step: simulate a targeted-vaccination
 scenario to test the FoI premise directly.</p>
+<hr>
+</div>
+<div class="section level2">
+<h2 id="e11">11. 2026-11-26 — HERMES vaccinates infected and recovered
+people<a class="anchor" aria-label="anchor" href="#e11"></a>
+</h2>
+<p><strong>Context.</strong> While writing the <a href="handover.html">handover notes</a>, the HERMES vaccination code
+(<code>rerun_ibm()</code> in <code>lib/ibm_core.R</code>) was read
+closely. Each round vaccinates a random sample of everyone not already
+vaccinated (<code>V</code>) or dead (<code>D</code>), which includes
+people who are infectious (<code>I</code>) or recovered
+(<code>R</code>). Vaccination sets their state to <code>V</code>. As a
+result:</p>
+<ul>
+<li>recovered people lose their natural immunity and become susceptible
+again, protected only by the vaccine (which wanes in the waning
+scenario);</li>
+<li>infectious people stop being infectious immediately, since only
+state <code>I</code> transmits.</li>
+</ul>
+<p>Also on this day: <code>simulate_waning_scenario()</code> gained an
+<code>rng_seed</code> argument (HERMES commit <code>8b11864</code>) for
+replicate simulations. The default (2026) reproduces the package
+datasets exactly; seed 7 gives a different epidemic (1,156 reported
+cases instead of 1,566).</p>
+<p><strong>Question.</strong> How often are infected or recovered people
+vaccinated, and how many cases among vaccinated people come from
+them?</p>
+<p><strong>Method.</strong> Regenerate both scenarios (checked identical
+to the packaged data) and, from the HERMES snapshot before each
+vaccination round, record each newly vaccinated person’s state.</p>
+<p><strong>Script.</strong>
+<code>dev/checks/2026-11-26_05_vaccinating_recovered.R</code> (about 1
+minute; needs a local <code>ibm_hermes</code> clone).</p>
+<p><strong>Results.</strong></p>
+<table class="table">
+<colgroup>
+<col width="33%">
+<col width="33%">
+<col width="33%">
+</colgroup>
+<thead><tr class="header">
+<th></th>
+<th>Waning</th>
+<th>No waning</th>
+</tr></thead>
+<tbody>
+<tr class="odd">
+<td>Vaccinated</td>
+<td>3,842</td>
+<td>3,846</td>
+</tr>
+<tr class="even">
+<td>… while susceptible (<code>S</code>)</td>
+<td>3,356</td>
+<td>3,316</td>
+</tr>
+<tr class="odd">
+<td>… while recovered (<code>R</code>)</td>
+<td>442 (11.5%)</td>
+<td>491 (12.8%)</td>
+</tr>
+<tr class="even">
+<td>… while infectious (<code>I</code>)</td>
+<td>44</td>
+<td>39</td>
+</tr>
+<tr class="odd">
+<td>Recovered-then-vaccinated people infected again after
+vaccination</td>
+<td>13</td>
+<td>11</td>
+</tr>
+<tr class="even">
+<td>Cases among vaccinated people (reported after vaccination, by day
+180)</td>
+<td>182</td>
+<td>118</td>
+</tr>
+<tr class="odd">
+<td>… of which in recovered-then-vaccinated people</td>
+<td>12 (7%)</td>
+<td>15 (13%)</td>
+</tr>
+</tbody>
+</table>
+<p>Those 12 and 15 cases are a mix of genuine reinfections and original
+infections whose report fell after the vaccination date.</p>
+<p><strong>Interpretation.</strong></p>
+<ul>
+<li>The simulated world differs from the usual assumption that infection
+gives lasting immunity: previously infected people who are vaccinated
+become susceptible again, so reinfections occur.</li>
+<li>The method counts the 12–15 cases above as vaccine failures. They
+are a modest share, but could contribute to the late underestimate in <a href="#e07">entry 7</a> and were not accounted for in entries 8–10.</li>
+<li>Vaccinating 39–44 infectious people cuts their infections short.
+This slightly reduces transmission and has no direct effect on the VE
+comparison.</li>
+<li>Real VE studies usually exclude or censor people with a known prior
+infection. An analysis could do the same for <em>reported</em> prior
+infections, but unreported ones (about 28% of infections) cannot be
+identified.</li>
+</ul>
+<p><strong>Conclusion.</strong> This is a feature of the simulator
+rather than of the method. Options: (a) change HERMES so vaccination
+does not override <code>R</code> (recovered people keep their immunity,
+still recording <code>time_of_vaccination</code>), and optionally
+exclude <code>I</code>; or (b) keep HERMES as is and censor people at a
+reported infection before vaccination. Option (a) gives cleaner ground
+truth but needs the datasets regenerating. Not yet decided.</p>
 <hr>
 </div>
 <div class="section level2">

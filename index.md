@@ -110,6 +110,10 @@ transmission), extended with waning vaccine protection. The script is
 
 ## Development
 
+- [Handover
+  notes](https://kylieainslie.github.io/surviver/articles/handover.html):
+  where everything lives, setup, how to regenerate or adapt the
+  simulations, and what to do next.
 - `vignettes/articles/lab-notebook.Rmd`: dated record of how the method
   and data were developed and every validation check, with results as
   observed.
