@@ -15,8 +15,37 @@ make_stan_data(person_days, foi, max_days_since_vax = NULL)
 Defaults to the longest observed.}
 }
 \value{
-A list with \code{data} (the list passed to Stan) and \code{cells} (the
-aggregated data frame, for inspection).
+A list with two elements:
+
+\strong{\code{cells}}: a tibble with one row per cell, i.e. per combination of
+age group, vaccination status, study day and day since vaccination that
+has any person-time:
+\describe{
+\item{\code{age_group}}{Age group (factor).}
+\item{\code{vax_status}}{1 if the person-days are after vaccination, 0 if
+before vaccination or never vaccinated.}
+\item{\code{day}}{Study (calendar) day.}
+\item{\code{tvax_bin}}{Day-since-vaccination bin: 1 for unvaccinated
+person-days, \code{t + 1} for day \code{t} after vaccination.}
+\item{\code{Y}}{Number of reported cases (events) in the cell.}
+\item{\code{n_persdays}}{Person-days at risk in the cell.}
+\item{\code{Ibar}}{Force-of-infection offset for that day and age group,
+from \code{foi}.}
+}
+
+\strong{\code{data}}: the list passed to Stan, built from \code{cells} (same row
+order):
+\describe{
+\item{\code{N}}{Number of cells.}
+\item{\code{K}}{Number of age groups (declared in the Stan models but not
+used).}
+\item{\code{T_vax}}{Number of day-since-vaccination bins,
+\code{max_days_since_vax + 1}.}
+\item{\code{Y}}{\code{cells$Y}.}
+\item{\code{log_Ibar}, \code{log_persdays}}{Logs of \code{cells$Ibar} and
+\code{cells$n_persdays}, used as offsets.}
+\item{\code{vax}, \code{tvax_bin}}{\code{cells$vax_status} and \code{cells$tvax_bin}.}
+}
 }
 \description{
 Aggregates person-days into cells of age group x vaccination status x day
