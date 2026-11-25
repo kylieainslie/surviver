@@ -1,0 +1,335 @@
+---
+title: "Handover notes"
+description: >
+  Everything needed to pick up the project: where things live, how to set
+  up, how to regenerate or adapt the simulations, and what to do next.
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(collapse = TRUE, comment = "#>", eval = FALSE)
+```
+
+*Written 2026-11-26.* These notes are for whoever takes over the project.
+They describe how things are set up and how to work on them. For what has
+been found so far, and why, read the [lab notebook](lab-notebook.html),
+starting with its status table.
+
+## 1. Where things stand
+
+**Aim.** Estimate vaccine effectiveness as a function of time since
+vaccination, VE(t), using a Poisson approximation to a Cox model in which
+the baseline hazard is driven by an age-structured force of infection (FoI).
+The project started as Group D at the Lorentz Center workshop (June 2026).
+
+**What works.**
+
+- The full pipeline, from raw vaccination and case records to a fitted
+  VE(t) curve, is in the package, tested, and documented on the
+  [website](https://kylieainslie.github.io/surviver/).
+- On simulated data with a known VE(t), the model recovers the curve and
+  distinguishes waning from no waning (lab notebook entry 7).
+
+**Known limitations** (details in the lab notebook):
+
+- The estimate lags the truth by about a week, because time since
+  vaccination is measured to the report date, not the infection date
+  (entry 7).
+- Late VE (90+ days) is underestimated in the waning scenario. About half of
+  this comes from calendar time being confounded with time since
+  vaccination (entry 9).
+- In the current simulations the FoI adds no precision, because vaccination
+  is random with respect to exposure (entry 10).
+- HERMES resets the immunity of recovered people when it vaccinates them
+  (entry 11).
+
+## 2. Where everything lives
+
+| What | Where |
+|---|---|
+| This package: code, data, Stan models, tests, website, lab notebook | GitHub [`kylieainslie/surviver`](https://github.com/kylieainslie/surviver) (public, branch `main`) |
+| HERMES simulator with the waning-VE extension | GitHub [`kylieainslie/ibm_hermes`](https://github.com/kylieainslie/ibm_hermes/tree/waning-vaccine-effectiveness), branch **`waning-vaccine-effectiveness`**. A fork of `lwillem/ibm_hermes` (Lander Willem); our changes are not upstream |
+| Workshop record: original scripts, case-study data (200,000 people), the first Group D vignettes | GitHub [`kylieainslie/lorentz_center_workshop`](https://github.com/kylieainslie/lorentz_center_workshop), branch `group-D`, `analysis/group-D/` and `data/`. Kept as a historical record; not developed further |
+| Website | <https://kylieainslie.github.io/surviver/>, rebuilt automatically on every push to `main` |
+
+**Package layout.**
+
+| Path | Contents |
+|---|---|
+| `R/prepare.R` | Data preparation: `ve_population()`, `daily_incidence()`, `daily_prevalence()`, `counting_process()`, `expand_person_days()`, … |
+| `R/foi.R` | `force_of_infection()`, `age_group_sizes()` |
+| `R/contact_hermes.R` | `contact_matrix_hermes()` |
+| `R/stan.R` | `make_stan_data()`, `fit_ve()`, `extract_ve()`, `plot_ve()`, `true_ve()`, `simulate_counts()` |
+| `R/data.R` | Dataset documentation |
+| `inst/stan/` | `ve_noncentered.stan` (default) and `ve_centered.stan` |
+| `data/`, `data-raw/` | Package datasets and the scripts that build them |
+| `tests/testthat/` | Unit tests (no Stan fitting, so they run without CmdStan) |
+| `dev/checks/` | One script per lab-notebook entry, named `YYYY-MM-DD_NN_name.R` |
+| `vignettes/articles/` | Lab notebook, these notes, and the notebook's figures. Website-only, not built by `R CMD check` |
+| `.github/workflows/pkgdown.yaml` | Builds and deploys the website |
+
+## 3. Setting up
+
+```{r}
+# 1. Clone both repositories (shell):
+#    git clone https://github.com/kylieainslie/surviver.git
+#    git clone -b waning-vaccine-effectiveness https://github.com/kylieainslie/ibm_hermes.git
+
+# 2. R packages (from the surviver folder)
+install.packages(c("devtools", "pak"))
+pak::local_install_dev_deps()       # Imports + Suggests, incl. cmdstanr from GitHub
+
+# 3. CmdStan, for fitting
+cmdstanr::install_cmdstan()
+
+# 4. Tell surviver where HERMES is, if not at ~/Documents/ibm_hermes.
+#    Add to ~/.Renviron:   HERMES_PATH=/path/to/ibm_hermes
+
+# 5. Check everything works
+devtools::test()
+devtools::check()
+```
+
+Versions used so far: R 4.5.2, CmdStan 2.39.0. `fit_ve()` caches the
+compiled Stan model in `tools::R_user_dir("surviver", "cache")`; delete that
+folder if a model seems stale after editing a `.stan` file.
+
+HERMES itself is not an R package. Its scripts `source()` each other with
+paths relative to the repository root, so always load it from that folder:
+
+```{r}
+hermes <- new.env()
+withr::with_dir(Sys.getenv("HERMES_PATH", "~/Documents/ibm_hermes"), {
+  sys.source("lib/ibm_core.R", envir = hermes)
+  sys.source("lib/ibm_waning_scenario.R", envir = hermes)
+})
+```
+
+## 4. Working conventions
+
+- **Lab notebook.** Every check or validation run gets a dated entry in
+  `vignettes/articles/lab-notebook.Rmd` with question, method, results as
+  observed, conclusion, and next step, plus a script in `dev/checks/`. Save
+  figures to `vignettes/articles/figures/` with the same date prefix. Never
+  edit past results; add a new entry or a dated note. Update the status
+  table and timeline at the top.
+- **Check scripts** run from the package root, load the package with
+  `devtools::load_all()`, and write outputs to `$SURVIVER_CHECKS_OUT`
+  (default: a temporary folder).
+- **Website.** Pushing to `main` rebuilds it. To preview locally:
+  `pkgdown::build_site()` and open `docs/index.html` (`docs/` is
+  git-ignored).
+- **Changes to HERMES** go on the `waning-vaccine-effectiveness` branch of
+  the fork. Commit before regenerating data, because each dataset records
+  the HERMES commit it came from, and the data script warns if HERMES has
+  uncommitted changes.
+
+## 5. Regenerating the simulated datasets
+
+The package datasets `ve_sim_waning` and `ve_sim_no_waning` come from
+`data-raw/ve_test_scenarios.R`:
+
+```{r}
+# from the surviver folder
+source("data-raw/ve_test_scenarios.R")   # about 20 s per scenario
+devtools::document()
+devtools::test()                         # tests/testthat/test-data.R checks structure
+```
+
+The script loads HERMES, calls `simulate_waning_scenario()` once with
+`ve_floor = 0.1` and once with `ve_floor = 0.8`, drops HERMES-only columns,
+stores the HERMES commit in `hermes_commit`, and saves with
+`usethis::use_data()`.
+
+**Reproducibility.** Every random step in the scenario is seeded from
+`rng_seed` (default 2026), including reporting. The current datasets were
+made with HERMES commit `6c9ab73`; later commits on the branch reproduce them
+exactly. If a regenerated dataset changes, record that in the lab notebook,
+because earlier entries' numbers refer to the old data.
+
+**Getting what the datasets leave out.** The exported tables only contain
+what an analyst would see. HERMES keeps the full state of every person (true
+infection time, symptom onset, death, …). Run with a known `output_dir` and
+read the final snapshot:
+
+```{r}
+sc  <- hermes$simulate_waning_scenario(ve_floor = 0.1, output_dir = "out/waning")
+full <- readRDS("out/waning/pop_data_intervention16.rds")   # 16 = n_chunks
+full$ind_id <- rownames(full)
+# columns include time_of_infection, time_of_symptom_onset, health,
+# time_of_vaccination, time_of_death, infector_id, ...
+```
+
+Snapshots after each vaccination round are `pop_data_intervention1.rds` …
+`pop_data_interventionN.rds`. Lab notebook entries 8 and 11 use these.
+
+## 6. Adapting the simulations
+
+### Changing scenario settings
+
+`simulate_waning_scenario()` (HERMES `lib/ibm_waning_scenario.R`) takes:
+
+| Argument | Default | Meaning |
+|---|---|---|
+| `ve_floor` | 0.1 | Long-run VE after waning; set equal to `vaccine_effectiveness` for no waning |
+| `vaccine_effectiveness` | 0.8 | Peak VE |
+| `ve_ramp_days` | 14 | Days to reach peak VE |
+| `ve_half_life` | 45 | Half-life of the waning, in days |
+| `pop_size` | 10,000 | Population size (runtime grows with it; 100,000 has not been timed) |
+| `transmission_prob` | 0.02 | Per-contact transmission probability. Chosen so the epidemic lasts the whole study; see lab notebook entry 2 before changing it |
+| `num_infected_seeds` | 10 | Initial infections |
+| `initial_days` | 20 | Days before vaccination starts |
+| `n_chunks`, `chunk_days` | 16, 10 | Number and length of vaccination rounds; study length is `initial_days + n_chunks * chunk_days` |
+| `chunk_coverage` | 0.03 | Share of the eligible population vaccinated per round |
+| `rng_seed` | 2026 | Seed for all random steps |
+| `output_dir` | temporary | Where HERMES writes its snapshots |
+
+Other HERMES parameters (contact probabilities, natural history, reporting
+delay) are set in `lib/ibm_parameters.R` (`get_default_parameters()`) and
+`lib/ibm_delay_parameters.R`. Changing those defaults affects **every**
+HERMES scenario, so prefer setting them inside the scenario function.
+
+### Using a new scenario without adding it to the package
+
+```{r}
+sc <- hermes$simulate_waning_scenario(ve_floor = 0.3, ve_half_life = 90)
+sim <- list(
+  demographic = sc$demographic_data,
+  vaccination = sc$vaccination_data,
+  incidence   = sc$incidence_data_reduced,
+  params      = sc$params,
+  study_end   = sc$study_end
+)
+pop <- ve_population(sim)        # then the usual pipeline (see README)
+truth <- true_ve(1:160, sim$params)
+```
+
+Alternatively, `hermes$export_waning_scenario(sc, "some/folder")` writes the
+four `.rds` files, and `ve_population("some/folder")` reads them.
+
+### Adding a new scenario to the package
+
+1. Add a call in `data-raw/ve_test_scenarios.R` (or a new `data-raw/`
+   script) and include it in `usethis::use_data()`.
+2. Document it in `R/data.R` and run `devtools::document()`.
+3. Extend `tests/testthat/test-data.R`.
+4. Add a lab-notebook entry describing it, like entry 5.
+
+### Replicate simulations
+
+Use different `rng_seed` values. Each seed changes the synthetic population
+as well as the epidemic, and epidemic size varies a lot between seeds (seed
+7 gave 1,156 reported cases against 1,566 for seed 2026), so record the
+number of cases among vaccinated people per replicate. A sketch:
+
+```{r}
+run_one <- function(seed, ve_floor) {
+  sc  <- hermes$simulate_waning_scenario(ve_floor = ve_floor, rng_seed = seed)
+  sim <- list(demographic = sc$demographic_data, vaccination = sc$vaccination_data,
+              incidence = sc$incidence_data_reduced, params = sc$params,
+              study_end = sc$study_end)
+  pop  <- ve_population(sim)
+  prev <- daily_prevalence(daily_incidence(pop))
+  foi  <- force_of_infection(prev, age_group_sizes(pop))
+  sd   <- make_stan_data(expand_person_days(counting_process(pop)), foi)
+  ve   <- extract_ve(fit_ve(sd, seed = seed, refresh = 0, show_messages = FALSE))
+  ve$truth <- true_ve(ve$days_since_vax, sim$params)
+  ve$seed  <- seed
+  ve
+}
+# about 20 s simulation + 40 s fit per replicate; parallelise over seeds
+# (e.g. with the future/furrr packages, one chain per core).
+```
+
+Summarise bias (median − truth), coverage of the 90% interval and interval
+width by range of days since vaccination. The piecewise GLM in
+`dev/checks/2026-11-25_03_calendar_time.R` takes seconds and is a useful
+quick screen before running Stan on every replicate.
+
+### Changing how HERMES vaccinates
+
+Vaccination happens at the start of each `rerun_ibm()` call in
+`lib/ibm_core.R` (look for `is_eligible`):
+
+```{r}
+is_eligible <- which(pop_data$health != states$V & pop_data$health != states$D)
+id_vaccinated <- sample(is_eligible, round(length(is_eligible) * params$vaccine_coverage, 0))
+pop_data$health[id_vaccinated] <- states$V
+pop_data$time_of_vaccination[id_vaccinated] <- nprev_days
+```
+
+- **Stop resetting immunity in recovered people** (lab notebook entry 11):
+  for people in state `R`, record `time_of_vaccination` but leave `health`
+  as `R`. Decide whether infectious people (`I`) should be vaccinated at
+  all.
+- **Targeted vaccination** (e.g. oldest first): replace `sample()` with a
+  selection that prioritises by `pop_data$age`. Add a new parameter (e.g.
+  `vaccine_priority = NULL`) and keep the current random selection when it
+  is `NULL`, so other scenarios are unchanged.
+
+Both changes alter the simulated data, so regenerate the datasets and add a
+lab-notebook entry.
+
+## 7. Where to go next
+
+In rough order of priority. The lab notebook explains the reasons.
+
+1. **Let transmission vary over calendar time in the model.** Add a random
+   walk on `log_beta` over calendar weeks (or days) to a new Stan model in
+   `inst/stan/`, keeping the FoI offset. `make_stan_data()` already keeps
+   `day` in its cells; pass a week index to Stan. Add the model name to
+   `ve_stan_file()` and `fit_ve()`. Expected to remove the calendar-time
+   part of the late underestimate (entry 9).
+2. **Decide on vaccination of recovered people** in HERMES (entry 11) and,
+   if changing it, regenerate the datasets.
+3. **Replicate simulations** (above) to measure bias and coverage properly.
+   Only then judge whether a frailty term is needed.
+4. **Targeted-vaccination scenario**, to test the project's premise that the
+   FoI improves VE estimation when exposure differs between vaccinated and
+   unvaccinated people (entry 10).
+5. **Frailty**, if bias remains after 1–3. Note the model works on
+   aggregated cells, so an individual random effect is not possible
+   directly; a gamma frailty integrated out analytically (hazard divided by
+   1 + θ × cumulative hazard) can work at cell level.
+6. **Delays between infection and reporting** (entry 7). Options range from
+   measuring time since vaccination to an estimated infection date to
+   treating infection time as latent.
+7. **Apply to the workshop case study** (`data/` in the workshop repo, read
+   with `ve_population("path/to/data")`). Decide the value of `theta` first
+   (entry 1 records the inconsistency).
+
+## 8. Loose ends
+
+- **HERMES reporting seed.** `get_default_delay_parameters()` has no
+  `rng_seed`, so reporting is unseeded in every HERMES run outside our
+  scenario function (lab notebook entry 4). Worth reporting to Lander
+  Willem (`lwillem/ibm_hermes`).
+- **HERMES default parameters.** Our branch changed package-wide defaults
+  (waning VE, hospitalisation, mortality; entry 2). Revert these to the
+  originals before proposing the branch upstream, and set them inside the
+  scenario function instead.
+- **Outdated documents.** `ibm_hermes/doc/vaccine_waning_vignette.Rmd`
+  still describes a 100,000-person scenario and old output paths. The
+  workshop repo's `data/ve_test_scenarios/` and its simulated-data vignette
+  predate the reproducibility fix (entry 4); the package versions are the
+  reference.
+- **Stan prior on the first day.** Both models put
+  \(\gamma(1) \sim N(-1, 1)\), i.e. a prior centred on about 63% VE on
+  the first day after vaccination. In the simulations VE starts at 0, so a
+  prior centred at 0 may be more sensible. Not yet tested.
+- **POLYMOD lookup.** `socialmixr` warns that the automatic population
+  lookup used in `data-raw/polymod_nl.R` is deprecated. The saved matrix is
+  unaffected, but the script will need `survey_pop` in future versions.
+- **Citation.** The waning-VE meta-analysis cited as "Ferdinands et al.
+  2018, *J Infect Dis* 217:731" may be by Young et al.; check before
+  publishing.
+- **Continuous integration.** Only the website is built on GitHub.
+  Consider adding `usethis::use_github_action("check-standard")` so tests
+  run on every push.
+
+## 9. People
+
+- Kylie Ainslie: package maintainer.
+- Group D at the Lorentz Center workshop: Fanny Bergström, David Price,
+  Nathalie Dean, Hein Putter, Kylie Ainslie.
+- HERMES: Lander Willem (`lwillem/ibm_hermes`); the case study was prepared
+  by the workshop organisers.

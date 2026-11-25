@@ -22,7 +22,7 @@ temporary folder).
 
 ## Status and open questions
 
-*Last updated 2026-11-25.*
+*Last updated 2026-11-26.*
 
 | Question | Status | Entry |
 |---|---|---|
@@ -32,6 +32,7 @@ temporary folder).
 | Do unreported (immune) infections in the risk set bias VE? | No detectable effect | [8](#e08) |
 | Does the FoI offset improve precision? | Not in this simulation once calendar time is adjusted for | [9](#e09) |
 | Does using HERMES's true contact structure instead of POLYMOD change VE(t)? | No. It describes who gets infected much better, but VE estimates and their precision are unchanged | [10](#e10) |
+| Does HERMES vaccinate people who were already infected, and does it matter? | Yes: about 12% of vaccinations go to recovered people, whose immunity is reset. They produce 7–13% of cases among vaccinated people. **Open**: fix in HERMES or handle in the analysis | [11](#e11) |
 | When should the FoI help? | **Open**: probably only when exposure differs between vaccinated and unvaccinated people (e.g. vaccination targeted by age). Needs a scenario that tests this | [10](#e10) |
 | Is the remaining late bias real or chance? | **Open**: needs replicate simulations | — |
 | Is a frailty term needed? | **Open**: decide after replicate simulations | — |
@@ -42,14 +43,18 @@ temporary folder).
 
 1. Let transmission vary over calendar time in the Stan model (e.g. a random
    walk on `log_beta` by day or week), keeping the FoI offset.
-2. Run 20–50 replicate HERMES simulations per scenario to measure bias and
+2. Decide how to handle HERMES vaccinating recovered people (entry 11).
+   If HERMES is changed, regenerate the datasets before step 3.
+3. Run 20–50 replicate HERMES simulations per scenario to measure bias and
    interval coverage, rather than judging from one realisation.
-3. Simulate a scenario where vaccination is targeted (e.g. by age, oldest
+4. Simulate a scenario where vaccination is targeted (e.g. by age, oldest
    first), so vaccinated and unvaccinated people face different exposure,
    and test whether the FoI then improves bias or precision.
-4. Revisit frailty once (1) and (2) are done.
-5. Extend the method to account for the delay between infection and
+5. Revisit frailty once (1) and (3) are done.
+6. Extend the method to account for the delay between infection and
    reporting.
+
+See the [handover notes](handover.html) for how to do each of these.
 
 ### Timeline
 
@@ -65,6 +70,7 @@ temporary folder).
 | 2026-11-25 | [8. Unreported infections in the risk set](#e08) |
 | 2026-11-25 | [9. Calendar time and time since vaccination](#e09) |
 | 2026-11-25 | [10. FoI from the HERMES contact structure instead of POLYMOD](#e10) |
+| 2026-11-26 | [11. HERMES vaccinates infected and recovered people](#e11) |
 
 ---
 
@@ -623,6 +629,74 @@ not test it.
 **Conclusion.** Use of POLYMOD is not what limits the method on these data.
 Added next step: simulate a targeted-vaccination scenario to test the FoI
 premise directly.
+
+---
+
+## 11. 2026-11-26 — HERMES vaccinates infected and recovered people {#e11}
+
+**Context.** While writing the [handover notes](handover.html), the HERMES
+vaccination code (`rerun_ibm()` in `lib/ibm_core.R`) was read closely. Each
+round vaccinates a random sample of everyone not already vaccinated (`V`) or
+dead (`D`), which includes people who are infectious (`I`) or recovered
+(`R`). Vaccination sets their state to `V`. As a result:
+
+- recovered people lose their natural immunity and become susceptible
+  again, protected only by the vaccine (which wanes in the waning scenario);
+- infectious people stop being infectious immediately, since only state `I`
+  transmits.
+
+Also on this day: `simulate_waning_scenario()` gained an `rng_seed` argument
+(HERMES commit `8b11864`) for replicate simulations. The default (2026)
+reproduces the package datasets exactly; seed 7 gives a different epidemic
+(1,156 reported cases instead of 1,566).
+
+**Question.** How often are infected or recovered people vaccinated, and how
+many cases among vaccinated people come from them?
+
+**Method.** Regenerate both scenarios (checked identical to the packaged
+data) and, from the HERMES snapshot before each vaccination round, record
+each newly vaccinated person's state.
+
+**Script.** `dev/checks/2026-11-26_05_vaccinating_recovered.R` (about 1
+minute; needs a local `ibm_hermes` clone).
+
+**Results.**
+
+| | Waning | No waning |
+|---|---|---|
+| Vaccinated | 3,842 | 3,846 |
+| … while susceptible (`S`) | 3,356 | 3,316 |
+| … while recovered (`R`) | 442 (11.5%) | 491 (12.8%) |
+| … while infectious (`I`) | 44 | 39 |
+| Recovered-then-vaccinated people infected again after vaccination | 13 | 11 |
+| Cases among vaccinated people (reported after vaccination, by day 180) | 182 | 118 |
+| … of which in recovered-then-vaccinated people | 12 (7%) | 15 (13%) |
+
+Those 12 and 15 cases are a mix of genuine reinfections and original
+infections whose report fell after the vaccination date.
+
+**Interpretation.**
+
+- The simulated world differs from the usual assumption that infection
+  gives lasting immunity: previously infected people who are vaccinated
+  become susceptible again, so reinfections occur.
+- The method counts the 12–15 cases above as vaccine failures. They are a
+  modest share, but could contribute to the late underestimate in
+  [entry 7](#e07) and were not accounted for in entries 8–10.
+- Vaccinating 39–44 infectious people cuts their infections short. This
+  slightly reduces transmission and has no direct effect on the VE
+  comparison.
+- Real VE studies usually exclude or censor people with a known prior
+  infection. An analysis could do the same for *reported* prior infections,
+  but unreported ones (about 28% of infections) cannot be identified.
+
+**Conclusion.** This is a feature of the simulator rather than of the
+method. Options: (a) change HERMES so vaccination does not override `R`
+(recovered people keep their immunity, still recording
+`time_of_vaccination`), and optionally exclude `I`; or (b) keep HERMES as is
+and censor people at a reported infection before vaccination. Option (a)
+gives cleaner ground truth but needs the datasets regenerating. Not yet
+decided.
 
 ---
 
