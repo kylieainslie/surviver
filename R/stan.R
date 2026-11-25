@@ -240,3 +240,52 @@ plot_ve <- function(ve, truth = NULL, colour = NULL, max_days = NULL) {
   if (!is.null(max_days)) p <- p + ggplot2::coord_cartesian(xlim = c(0, max_days))
   p
 }
+
+#' Observed and model-expected case counts
+#'
+#' Sums observed cases and the posterior distribution of expected cases
+#' (\eqn{\mu} from the fitted model) over groups of Stan cells, e.g. by
+#' calendar day and vaccination status. Comparing the two shows how well
+#' the model fits the case data.
+#'
+#' @param fit A fit from [fit_ve()].
+#' @param stan_data The output of [make_stan_data()] used for the fit (with
+#'   its `cells`).
+#' @param by Columns of `stan_data$cells` to group by.
+#' @param probs Lower and upper quantiles for the interval.
+#'
+#' @return A tibble with the `by` columns, `observed`, and the posterior
+#'   `mean`, `lower` and `upper` of the expected count.
+#' @export
+expected_cases <- function(fit, stan_data, by = c("day", "vax_status"),
+                           probs = c(0.05, 0.95)) {
+  rlang::check_installed("posterior", reason = "to summarise draws.")
+  cells <- stan_data$cells
+  if (is.null(cells)) {
+    stop("`stan_data` must be the full output of make_stan_data().", call. = FALSE)
+  }
+  log_mu <- posterior::as_draws_matrix(fit$draws("log_mu"))
+  if (ncol(log_mu) != nrow(cells)) {
+    stop("`fit` and `stan_data` do not match (different numbers of cells).",
+         call. = FALSE)
+  }
+  group <- interaction(cells[by], drop = TRUE, lex.order = TRUE)
+  # indicator matrix: cells x groups, so draws %*% ind sums mu within groups
+  ind <- indicator_matrix(group)
+  mu_by_group <- exp(unclass(log_mu)) %*% ind
+
+  keys <- cells[!duplicated(group), by, drop = FALSE]
+  keys <- keys[order(group[!duplicated(group)]), , drop = FALSE]
+  out <- dplyr::as_tibble(keys)
+  out$observed <- as.vector(tapply(cells$Y, group, sum))
+  out$mean  <- colMeans(mu_by_group)
+  out$lower <- apply(mu_by_group, 2, stats::quantile, probs = probs[1], names = FALSE)
+  out$upper <- apply(mu_by_group, 2, stats::quantile, probs = probs[2], names = FALSE)
+  out
+}
+
+indicator_matrix <- function(group) {
+  m <- matrix(0, nrow = length(group), ncol = nlevels(group))
+  m[cbind(seq_along(group), as.integer(group))] <- 1
+  m
+}

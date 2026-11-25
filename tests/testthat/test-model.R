@@ -96,3 +96,26 @@ test_that("plot_ve builds with and without colour and truth", {
   expect_s3_class(p, "ggplot")
   expect_no_error(ggplot2::ggplot_build(p))
 })
+
+test_that("expected_cases sums observed and expected counts by group", {
+  skip_if_not_installed("posterior")
+  cells <- data.frame(day = c(1, 1, 2, 2), vax_status = c(0, 1, 0, 1),
+                      Y = c(1, 0, 3, 2))
+  sd <- list(cells = cells)
+  # two draws of log_mu for four cells
+  mu <- rbind(c(1, 2, 3, 4), c(2, 2, 2, 2))
+  draws <- posterior::as_draws_matrix(
+    matrix(log(mu), nrow = 2, dimnames = list(NULL, paste0("log_mu[", 1:4, "]"))))
+  fake_fit <- list(draws = function(variables) draws)
+
+  by_day <- expected_cases(fake_fit, sd, by = "day")
+  expect_equal(by_day$day, c(1, 2))
+  expect_equal(by_day$observed, c(1, 5))
+  expect_equal(by_day$mean, c(mean(c(3, 4)), mean(c(7, 4))))
+
+  both <- expected_cases(fake_fit, sd, by = c("day", "vax_status"))
+  expect_equal(nrow(both), 4)
+  expect_equal(both$observed, cells$Y)
+  expect_equal(both$mean, colMeans(mu))
+  expect_error(expected_cases(fake_fit, list(cells = cells[1:3, ])), "do not match")
+})

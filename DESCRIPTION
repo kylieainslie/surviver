@@ -13,7 +13,10 @@ RoxygenNote: 8.0.0
 Suggests: 
     cmdstanr,
     ggplot2,
+    knitr,
     posterior,
+    rmarkdown,
+    scales,
     socialmixr,
     testthat (>= 3.0.0)
 Config/testthat/edition: 3
@@ -33,5 +36,6 @@ Config/Needs/website: rmarkdown
 URL: https://kylieainslie.github.io/surviver/,
     https://github.com/kylieainslie/surviver
 BugReports: https://github.com/kylieainslie/surviver/issues
-Remotes:  
+Remotes: 
     stan-dev/cmdstanr
+VignetteBuilder: knitr

@@ -44,6 +44,7 @@ reference:
       - fit_ve
       - extract_ve
       - plot_ve
+      - expected_cases
   - title: Validation
     desc: Helpers for checking the method against known truth.
     contents:

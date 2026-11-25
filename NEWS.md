@@ -12,7 +12,10 @@
 * `counting_process(censor_at_vaccination = )` and
   `reported_soon_after_vaccination()` to censor people infected before
   vaccination but reported after it.
+* `expected_cases()` compares observed and model-expected case counts.
 * Validation helpers: `true_ve()`, `simulate_counts()`.
 * Datasets: `ve_sim_waning`, `ve_sim_no_waning` (HERMES simulations with
   known VE(t)) and `polymod_nl`.
+* "Get started" vignette with figures of the epidemic dynamics, model fit
+  and VE estimates (fits precomputed in `inst/extdata/ve_fits.rds`).
 * Lab notebook article recording development and validation checks.
