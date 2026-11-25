@@ -2,7 +2,8 @@
 
 Linear rise from 0 to `vaccine_effectiveness` over `ve_ramp_days`, then
 exponential decay with half-life `ve_half_life` towards `ve_floor`.
-Matches `compute_time_varying_ve()` in HERMES.
+Matches `compute_time_varying_ve()` in the [HERMES waning-VE
+extension](https://github.com/kylieainslie/ibm_hermes/tree/waning-vaccine-effectiveness).
 
 ## Usage
 

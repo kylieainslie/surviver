@@ -59,15 +59,14 @@
 <!-- badges: start -->
 
 <p><strong>surviver</strong> estimates vaccine effectiveness as a function of time since vaccination, VE(t), from individual-level data on vaccination and reported infections.</p>
-<p>It combines survival analysis with infectious disease modelling. Each person’s hazard of infection is driven by the force of infection they are exposed to, built from daily prevalence and an age-structured contact matrix, and vaccination modifies that hazard by a log hazard ratio γ(t) that varies smoothly with time since vaccination:</p>
+<p>Each person’s hazard of infection is driven by the force of infection they are exposed to, built from reported cases and an age-structured contact matrix. Vaccination multiplies that hazard by exp(γ(t)), where γ(t) varies with time since vaccination:</p>
 <p><math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mrow><mi mathvariant="normal">log</mi><mo>⁡</mo></mrow><mi>h</mi><mo>=</mo><mrow><mi mathvariant="normal">log</mi><mo>⁡</mo></mrow><mi>β</mi><mo>+</mo><mrow><mi mathvariant="normal">log</mi><mo>⁡</mo></mrow><mover><mi>I</mi><mo accent="true">‾</mo></mover><mo stretchy="false" form="prefix">(</mo><msub><mi>t</mi><mi>c</mi></msub><mo>,</mo><mi>a</mi><mo stretchy="false" form="postfix">)</mo><mo>+</mo><mi>γ</mi><mo stretchy="false" form="prefix">(</mo><mi>t</mi><mo stretchy="false" form="postfix">)</mo><mspace width="0.167em"></mspace><mi>V</mi><mo>,</mo><mspace width="2.0em"></mspace><mrow><mi mathvariant="normal">V</mi><mi mathvariant="normal">E</mi></mrow><mo stretchy="false" form="prefix">(</mo><mi>t</mi><mo stretchy="false" form="postfix">)</mo><mo>=</mo><mn>1</mn><mo>−</mo><msup><mi>e</mi><mrow><mi>γ</mi><mo stretchy="false" form="prefix">(</mo><mi>t</mi><mo stretchy="false" form="postfix">)</mo></mrow></msup></mrow><annotation encoding="application/x-tex">
 \log h = \log\beta + \log \bar I(t_c, a) + \gamma(t)\,V,
 \qquad \mathrm{VE}(t) = 1 - e^{\gamma(t)}
 </annotation></semantics></math></p>
-<p>The model is a Poisson approximation to a Cox model, fitted in Stan with a random-walk prior on γ(t), so VE can rise, plateau and wane without assuming a functional form.</p>
-<p>The method was developed by Group D at the Lorentz Center workshop <em>Connecting Survival Analysis and Infectious Disease Modelling</em> (Leiden, June 2026).</p>
+<p>The model is a Poisson approximation to a Cox model, fitted in <a href="https://mc-stan.org/" class="external-link">Stan</a> with a random-walk prior on γ(t), so VE can rise, plateau and wane without assuming a functional form.</p>
 <blockquote>
-<p><strong>Status: experimental.</strong> The method is under active development and validation. See the <a href="https://kylieainslie.github.io/surviver/articles/lab-notebook.html">lab notebook</a> for what has been checked so far and the known open issues.</p>
+<p><strong>Status: experimental.</strong> See the <a href="https://kylieainslie.github.io/surviver/articles/lab-notebook.html">lab notebook</a> for what has been checked and the open issues.</p>
 </blockquote>
 <div class="section level2">
 <h2 id="installation">Installation<a class="anchor" aria-label="anchor" href="#installation"></a>
@@ -96,21 +95,21 @@
 <span><span class="va">foi</span>  <span class="op">&lt;-</span> <span class="fu"><a href="reference/force_of_infection.html">force_of_infection</a></span><span class="op">(</span><span class="va">prev</span>, <span class="fu"><a href="reference/age_group_sizes.html">age_group_sizes</a></span><span class="op">(</span><span class="va">pop</span><span class="op">)</span>, contact_matrix <span class="op">=</span> <span class="va">polymod_nl</span><span class="op">)</span></span>
 <span></span>
 <span><span class="co"># person-days split at vaccination, aggregated for Stan. People reported</span></span>
-<span><span class="co"># within 7 days of vaccination are censored at vaccination, since they were</span></span>
-<span><span class="co"># probably infected before it</span></span>
+<span><span class="co"># within 7 days of vaccination are censored at vaccination (probably</span></span>
+<span><span class="co"># infected before it)</span></span>
 <span><span class="va">early</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/reported_soon_after_vaccination.html">reported_soon_after_vaccination</a></span><span class="op">(</span><span class="va">pop</span>, window <span class="op">=</span> <span class="fl">7</span><span class="op">)</span></span>
 <span><span class="va">pd</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/expand_person_days.html">expand_person_days</a></span><span class="op">(</span><span class="fu"><a href="reference/counting_process.html">counting_process</a></span><span class="op">(</span><span class="va">pop</span>, censor_at_vaccination <span class="op">=</span> <span class="va">early</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="va">sd</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/make_stan_data.html">make_stan_data</a></span><span class="op">(</span><span class="va">pd</span>, <span class="va">foi</span><span class="op">)</span></span>
 <span></span>
-<span><span class="co"># fit and plot against the true curve (VE is not estimable for the</span></span>
-<span><span class="co"># first 7 days after vaccination once early cases are censored)</span></span>
+<span><span class="co"># fit and plot against the true curve (VE is not estimable for the first</span></span>
+<span><span class="co"># 7 days after vaccination once early cases are censored)</span></span>
 <span><span class="va">fit</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/fit_ve.html">fit_ve</a></span><span class="op">(</span><span class="va">sd</span>, seed <span class="op">=</span> <span class="fl">42</span><span class="op">)</span></span>
 <span><span class="va">ve</span>  <span class="op">&lt;-</span> <span class="fu"><a href="reference/extract_ve.html">extract_ve</a></span><span class="op">(</span><span class="va">fit</span><span class="op">)</span></span>
 <span><span class="fu"><a href="reference/plot_ve.html">plot_ve</a></span><span class="op">(</span><span class="va">ve</span><span class="op">[</span><span class="va">ve</span><span class="op">$</span><span class="va">days_since_vax</span> <span class="op">&gt;</span> <span class="fl">7</span>, <span class="op">]</span>, truth <span class="op">=</span> <span class="va">ve_sim_waning</span><span class="op">$</span><span class="va">params</span><span class="op">)</span></span></code></pre></div>
 <div class="float">
 <img src="reference/figures/README-ve-fit.png" alt="Estimated VE (blue, with 90% credible interval) against the true VE (red dashed) for the two simulated scenarios."><div class="figcaption">Estimated VE (blue, with 90% credible interval) against the true VE (red dashed) for the two simulated scenarios.</div>
 </div>
-<p>See the <a href="https://kylieainslie.github.io/surviver/articles/surviver.html">Get started</a> vignette for the epidemic dynamics, the model fit to cases, and this comparison in detail.</p>
+<p>The <a href="https://kylieainslie.github.io/surviver/articles/surviver.html">Get started</a> vignette shows the epidemic dynamics and the model fit to cases.</p>
 <p>To use your own data, pass <code><a href="reference/ve_population.html">ve_population()</a></code> a folder containing <code>demographic_data.rds</code>, <code>vaccination_data.rds</code> and <code>incidence_data_reduced.rds</code>, or a list with <code>demographic</code>, <code>vaccination</code> and <code>incidence</code> data frames (see <code><a href="reference/ve_population.html">?ve_population</a></code>).</p>
 </div>
 <div class="section level2">
@@ -129,31 +128,25 @@
 <tr>
 <td>Prepare data</td>
 <td>
-<code><a href="reference/ve_population.html">ve_population()</a></code>, <code><a href="reference/sample_cohort.html">sample_cohort()</a></code>, <code><a href="reference/add_age_group.html">add_age_group()</a></code>
+<code><a href="reference/ve_population.html">ve_population()</a></code>, <code><a href="reference/sample_cohort.html">sample_cohort()</a></code>, <code><a href="reference/daily_incidence.html">daily_incidence()</a></code>, <code><a href="reference/counting_process.html">counting_process()</a></code>, <code><a href="reference/reported_soon_after_vaccination.html">reported_soon_after_vaccination()</a></code>, <code><a href="reference/expand_person_days.html">expand_person_days()</a></code>
 </td>
 </tr>
 <tr>
 <td>Exposure</td>
 <td>
-<code><a href="reference/daily_incidence.html">daily_incidence()</a></code>, <code><a href="reference/daily_prevalence.html">daily_prevalence()</a></code>, <code><a href="reference/force_of_infection.html">force_of_infection()</a></code>, <code><a href="reference/age_group_sizes.html">age_group_sizes()</a></code>
+<code><a href="reference/daily_prevalence.html">daily_prevalence()</a></code>, <code><a href="reference/age_group_sizes.html">age_group_sizes()</a></code>, <code><a href="reference/force_of_infection.html">force_of_infection()</a></code>, <code><a href="reference/contact_matrix_hermes.html">contact_matrix_hermes()</a></code>
 </td>
 </tr>
 <tr>
-<td>Survival data</td>
+<td>Fit the model</td>
 <td>
-<code><a href="reference/counting_process.html">counting_process()</a></code>, <code><a href="reference/reported_soon_after_vaccination.html">reported_soon_after_vaccination()</a></code>, <code><a href="reference/expand_person_days.html">expand_person_days()</a></code>, <code><a href="reference/make_stan_data.html">make_stan_data()</a></code>
-</td>
-</tr>
-<tr>
-<td>Fit and summarise</td>
-<td>
-<code><a href="reference/fit_ve.html">fit_ve()</a></code>, <code><a href="reference/extract_ve.html">extract_ve()</a></code>, <code><a href="reference/plot_ve.html">plot_ve()</a></code>
+<code><a href="reference/make_stan_data.html">make_stan_data()</a></code>, <code><a href="reference/fit_ve.html">fit_ve()</a></code>, <code><a href="reference/extract_ve.html">extract_ve()</a></code>, <code><a href="reference/plot_ve.html">plot_ve()</a></code>, <code><a href="reference/expected_cases.html">expected_cases()</a></code>
 </td>
 </tr>
 <tr>
 <td>Validation</td>
 <td>
-<code><a href="reference/true_ve.html">true_ve()</a></code>, <code><a href="reference/simulate_counts.html">simulate_counts()</a></code>, <code><a href="reference/contact_matrix_hermes.html">contact_matrix_hermes()</a></code>
+<code><a href="reference/true_ve.html">true_ve()</a></code>, <code><a href="reference/simulate_counts.html">simulate_counts()</a></code>
 </td>
 </tr>
 </tbody>
@@ -183,11 +176,12 @@
 </tr>
 <tr>
 <td><code>polymod_nl</code></td>
-<td>POLYMOD contact matrix for the Netherlands, five age groups</td>
+<td>
+<a href="https://doi.org/10.1371/journal.pmed.0050074" class="external-link">POLYMOD</a> contact matrix for the Netherlands, five age groups</td>
 </tr>
 </tbody>
 </table>
-<p>The simulated datasets were generated with <strong>HERMES</strong> (Health, Epidemic and Economic R-based Microsimulation Engine for Individual-based Simulations), an individual-based model of transmission through households, schools, workplaces and the community, developed by Lander Willem (University of Antwerp). See the <a href="https://github.com/lwillem/ibm_hermes" class="external-link">HERMES repository</a> and its <a href="https://github.com/lwillem/ibm_hermes/blob/lorentz_center_workshop/doc/user_manual_HERMES.pdf" class="external-link">user manual</a>. For this package HERMES was extended with vaccine protection that wanes with time since vaccination (<a href="https://github.com/kylieainslie/ibm_hermes/tree/waning-vaccine-effectiveness" class="external-link"><code>waning-vaccine-effectiveness</code> branch</a> of our fork). The script is <code>data-raw/ve_test_scenarios.R</code>; it needs a local clone of HERMES (set <code>HERMES_PATH</code>), and each dataset records the HERMES commit it came from.</p>
+<p>The simulated datasets were generated with <a href="https://github.com/lwillem/ibm_hermes" class="external-link">HERMES</a>, an individual-based transmission model by Lander Willem (see its <a href="https://github.com/lwillem/ibm_hermes/blob/lorentz_center_workshop/doc/user_manual_HERMES.pdf" class="external-link">user manual</a>), extended so that vaccine protection wanes (<a href="https://github.com/kylieainslie/ibm_hermes/tree/waning-vaccine-effectiveness" class="external-link"><code>waning-vaccine-effectiveness</code></a> branch). <code>data-raw/ve_test_scenarios.R</code> regenerates them from a local clone of HERMES (set <code>HERMES_PATH</code>).</p>
 </div>
 <div class="section level2">
 <h2 id="development">Development<a class="anchor" aria-label="anchor" href="#development"></a>
@@ -196,7 +190,7 @@
 <li>
 <a href="https://kylieainslie.github.io/surviver/articles/handover.html">Handover notes</a>: where everything lives, setup, how to regenerate or adapt the simulations, and what to do next.</li>
 <li>
-<code>vignettes/articles/lab-notebook.Rmd</code>: dated record of how the method and data were developed and every validation check, with results as observed.</li>
+<a href="https://kylieainslie.github.io/surviver/articles/lab-notebook.html">Lab notebook</a>: dated record of how the method and data were developed, and every check.</li>
 <li>
 <code>dev/checks/</code>: scripts that reproduce each lab-notebook entry.</li>
 <li>
@@ -206,7 +200,7 @@
 <div class="section level2">
 <h2 id="acknowledgements">Acknowledgements<a class="anchor" aria-label="anchor" href="#acknowledgements"></a>
 </h2>
-<p>The method was developed by Group D at the Lorentz Center workshop <em>Connecting Survival Analysis and Infectious Disease Modelling</em> (Leiden, June 2026): Fanny Bergström, David Price, Nathalie Dean, Hein Putter and Kylie Ainslie. The simulated data use HERMES by Lander Willem (<a href="https://github.com/lwillem/ibm_hermes" class="external-link uri">https://github.com/lwillem/ibm_hermes</a>).</p>
+<p>The method was developed by Group D at the Lorentz Center workshop <a href="https://www.lorentzcenter.nl/connecting-survival-analysis-and-infectious-disease-modeling.html" class="external-link"><em>Connecting Survival Analysis and Infectious Disease Modeling</em></a> (Leiden, June 2026): Fanny Bergström, David Price, Nathalie Dean, Hein Putter and Kylie Ainslie. The simulated data use <a href="https://github.com/lwillem/ibm_hermes" class="external-link">HERMES</a> by Lander Willem.</p>
 </div>
 <div class="section level2">
 <h2 id="licence">Licence<a class="anchor" aria-label="anchor" href="#licence"></a>

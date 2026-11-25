@@ -27,10 +27,10 @@ ve_population(x, study_end = NULL)
 
 ## Value
 
-A data frame with one row per person: the demographic columns plus
-`time_of_vaccination`, `time_of_reporting` (`NA` if never vaccinated /
-reported), and logical `vaccinated` and `infected`. The study end is
-stored in the `"study_end"` attribute.
+A data frame with one row per person: the demographic columns,
+`time_of_vaccination` and `time_of_reporting` (`NA` if none), and
+logical `vaccinated` and `infected`. The study end is stored in the
+`"study_end"` attribute.
 
 ## Examples
 

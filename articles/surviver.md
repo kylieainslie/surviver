@@ -1,10 +1,9 @@
 # Get started
 
-This vignette walks through the standard **surviver** analysis on
-simulated data where the true vaccine effectiveness (VE) is known. It
-shows the epidemic dynamics the method works with, how the data are
-prepared, how well the model fits the cases, and how close the estimated
-VE(t) is to the truth.
+This vignette runs the standard **surviver** analysis on simulated data
+where the true vaccine effectiveness (VE) is known: the epidemic
+dynamics, data preparation, model fit, and estimated VE(t) against the
+truth.
 
 ``` r
 
@@ -17,14 +16,11 @@ scenarios <- list(Waning = ve_sim_waning, `No waning` = ve_sim_no_waning)
 
 ## The simulated data
 
-`ve_sim_waning` and `ve_sim_no_waning` were simulated with **HERMES**
-(Health, Epidemic and Economic R-based Microsimulation Engine for
-Individual-based Simulations), an individual-based model of infectious
-disease transmission in a population structured into households,
-schools, workplaces and the wider community, developed by Lander Willem
-(University of Antwerp). HERMES is described in its
-[repository](https://github.com/lwillem/ibm_hermes) and [user
-manual](https://github.com/lwillem/ibm_hermes/blob/lorentz_center_workshop/doc/user_manual_HERMES.pdf).
+`ve_sim_waning` and `ve_sim_no_waning` were simulated with
+[HERMES](https://github.com/lwillem/ibm_hermes), an individual-based
+model of transmission through households, schools, workplaces and the
+community, developed by Lander Willem (see the [user
+manual](https://github.com/lwillem/ibm_hermes/blob/lorentz_center_workshop/doc/user_manual_HERMES.pdf)).
 For this package it was extended so that vaccine protection changes with
 time since vaccination ([`waning-vaccine-effectiveness`
 branch](https://github.com/kylieainslie/ibm_hermes/tree/waning-vaccine-effectiveness)).
@@ -53,10 +49,9 @@ stays at 0.8.](surviver_files/figure-html/true-ve-1.png)
 
 [`ve_population()`](https://kylieainslie.github.io/surviver/reference/ve_population.md)
 joins the demographic, vaccination and case data into one row per
-person. Plotting reported cases by vaccination status alongside
-vaccination coverage shows the setting the method has to work in: the
-epidemic peaks while coverage is still rising, so most vaccinated people
-spend much of their follow-up in a waning epidemic.
+person. The epidemic peaks while vaccination coverage is still rising.
+In the waning scenario, cases among vaccinated people continue to the
+end of the study as protection fades.
 
 ``` r
 
@@ -102,7 +97,9 @@ The model’s baseline hazard is driven by the infectious pressure, or
 force of infection, each age group experiences on each day. It is built
 from reported cases (each assumed infectious for 7 days, starting 2 days
 before being reported) and an age-structured contact matrix.
-`polymod_nl` holds POLYMOD contact rates for the Netherlands;
+`polymod_nl` holds
+[POLYMOD](https://doi.org/10.1371/journal.pmed.0050074) contact rates
+for the Netherlands;
 [`contact_matrix_hermes()`](https://kylieainslie.github.io/surviver/reference/contact_matrix_hermes.md)
 gives the contact structure HERMES itself uses.
 
@@ -121,7 +118,7 @@ ggplot(foi, aes(day, Ibar, colour = age_group)) +
 
 ![Infectious pressure by age group over the study for the waning
 scenario; school-age children face the highest pressure, peaking around
-day 60 to 90.](surviver_files/figure-html/foi-1.png)
+days 50 to 80.](surviver_files/figure-html/foi-1.png)
 
 ## Preparing the survival data
 
@@ -298,10 +295,9 @@ notebook](https://kylieainslie.github.io/surviver/articles/lab-notebook.html):
 
 ## References
 
-- Willem L. HERMES: Health, Epidemic and Economic R-based
-  Microsimulation Engine for Individual-based Simulations. University of
-  Antwerp. <https://github.com/lwillem/ibm_hermes>; user manual
-  (extended version for the Lorentz Center workshop):
-  <https://github.com/lwillem/ibm_hermes/blob/lorentz_center_workshop/doc/user_manual_HERMES.pdf>.
 - Mossong J, et al. (2008) Social contacts and mixing patterns relevant
   to the spread of infectious diseases. *PLoS Med* 5(3):e74.
+  <https://doi.org/10.1371/journal.pmed.0050074>
+- Willem L. HERMES: Health, Epidemic and Economic R-based
+  Microsimulation Engine for Individual-based Simulations. University of
+  Antwerp. <https://github.com/lwillem/ibm_hermes>

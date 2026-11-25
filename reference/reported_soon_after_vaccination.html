@@ -82,10 +82,9 @@ censoring (reports on days <code>1</code> to <code>window</code> after vaccinati
     </div>
     <div class="section level2">
     <h2 id="details">Details<a class="anchor" aria-label="anchor" href="#details"></a></h2>
-    <p>Censoring these people removes misclassified cases but also genuine early
-vaccine failures, which tends to overstate VE in the first days after
-vaccination. Choose <code>window</code> with that trade-off in mind (e.g. the upper
-range of incubation period plus reporting delay).</p>
+    <p>Censoring also removes some genuine early vaccine failures, so VE is not
+estimable for the first <code>window</code> days after vaccination. Longer windows
+catch more prior infections but discard more genuine cases.</p>
     </div>
 
     <div class="section level2">

@@ -19,6 +19,8 @@ contacts a person in group `i` has with people in group `j`.
 ## Source
 
 Mossong J, et al. (2008) Social contacts and mixing patterns relevant to
-the spread of infectious diseases. *PLoS Med* 5(3):e74. Computed with
+the spread of infectious diseases. *PLoS Med* 5(3):e74.
+[doi:10.1371/journal.pmed.0050074](https://doi.org/10.1371/journal.pmed.0050074)
+. Computed with
 [`socialmixr::contact_matrix()`](https://epiforecasts.io/socialmixr/reference/contact_matrix.html);
 see `data-raw/polymod_nl.R`.

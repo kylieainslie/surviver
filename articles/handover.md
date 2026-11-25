@@ -11,8 +11,9 @@ starting with its status table.
 **Aim.** Estimate vaccine effectiveness as a function of time since
 vaccination, VE(t), using a Poisson approximation to a Cox model in
 which the baseline hazard is driven by an age-structured force of
-infection (FoI). The project started as Group D at the Lorentz Center
-workshop (June 2026).
+infection (FoI). The project started as Group D at the [Lorentz Center
+workshop](https://www.lorentzcenter.nl/connecting-survival-analysis-and-infectious-disease-modeling.html)
+(June 2026).
 
 **What works.**
 
@@ -25,20 +26,18 @@ workshop (June 2026).
 **Known limitations** (details in the lab notebook):
 
 - Time since vaccination is measured to the report date, not the
-  infection date, so the estimate lags the truth (entry 7). People
-  infected before vaccination but reported after it must be censored.
-  The standard analysis now uses
-  `counting_process(censor_at_vaccination = reported_soon_after_vaccination(pop, 7))`,
-  which makes VE for the first 7 days after vaccination not estimable
-  (entry 12).
+  infection date, so the estimate lags the truth (entry 7), and VE for
+  the first 7 days is not estimable once early cases are censored (entry
+  12).
 - Late VE (90+ days) is underestimated in the waning scenario. About
   half of this comes from calendar time being confounded with time since
   vaccination (entry 9).
 - In the current simulations the FoI adds no precision, because
   vaccination is random with respect to exposure (entry 10).
-- HERMES vaccinates infectious and recovered people and resets their
-  immunity (entry 11). This is deliberate: real campaigns vaccinate them
-  too, so the analysis censors them instead (entry 12).
+- HERMES vaccinates people who are infectious or recovered, which ends
+  their infection or removes their natural immunity (entry 11). This is
+  kept deliberately, because real campaigns vaccinate them too; the
+  analysis censors them instead (entry 12).
 
 ## 2. Where everything lives
 
@@ -53,15 +52,17 @@ workshop (June 2026).
 
 | Path | Contents |
 |----|----|
-| `R/prepare.R` | Data preparation: [`ve_population()`](https://kylieainslie.github.io/surviver/reference/ve_population.md), [`daily_incidence()`](https://kylieainslie.github.io/surviver/reference/daily_incidence.md), [`daily_prevalence()`](https://kylieainslie.github.io/surviver/reference/daily_prevalence.md), [`counting_process()`](https://kylieainslie.github.io/surviver/reference/counting_process.md), [`expand_person_days()`](https://kylieainslie.github.io/surviver/reference/expand_person_days.md), … |
+| `R/prepare.R` | Data preparation: [`ve_population()`](https://kylieainslie.github.io/surviver/reference/ve_population.md), [`daily_incidence()`](https://kylieainslie.github.io/surviver/reference/daily_incidence.md), [`daily_prevalence()`](https://kylieainslie.github.io/surviver/reference/daily_prevalence.md), [`counting_process()`](https://kylieainslie.github.io/surviver/reference/counting_process.md), [`reported_soon_after_vaccination()`](https://kylieainslie.github.io/surviver/reference/reported_soon_after_vaccination.md), [`expand_person_days()`](https://kylieainslie.github.io/surviver/reference/expand_person_days.md), … |
 | `R/foi.R` | [`force_of_infection()`](https://kylieainslie.github.io/surviver/reference/force_of_infection.md), [`age_group_sizes()`](https://kylieainslie.github.io/surviver/reference/age_group_sizes.md) |
 | `R/contact_hermes.R` | [`contact_matrix_hermes()`](https://kylieainslie.github.io/surviver/reference/contact_matrix_hermes.md) |
-| `R/stan.R` | [`make_stan_data()`](https://kylieainslie.github.io/surviver/reference/make_stan_data.md), [`fit_ve()`](https://kylieainslie.github.io/surviver/reference/fit_ve.md), [`extract_ve()`](https://kylieainslie.github.io/surviver/reference/extract_ve.md), [`plot_ve()`](https://kylieainslie.github.io/surviver/reference/plot_ve.md), [`true_ve()`](https://kylieainslie.github.io/surviver/reference/true_ve.md), [`simulate_counts()`](https://kylieainslie.github.io/surviver/reference/simulate_counts.md) |
+| `R/stan.R` | [`make_stan_data()`](https://kylieainslie.github.io/surviver/reference/make_stan_data.md), [`fit_ve()`](https://kylieainslie.github.io/surviver/reference/fit_ve.md), [`extract_ve()`](https://kylieainslie.github.io/surviver/reference/extract_ve.md), [`expected_cases()`](https://kylieainslie.github.io/surviver/reference/expected_cases.md), [`plot_ve()`](https://kylieainslie.github.io/surviver/reference/plot_ve.md), [`true_ve()`](https://kylieainslie.github.io/surviver/reference/true_ve.md), [`simulate_counts()`](https://kylieainslie.github.io/surviver/reference/simulate_counts.md) |
 | `R/data.R` | Dataset documentation |
 | `inst/stan/` | `ve_noncentered.stan` (default) and `ve_centered.stan` |
 | `data/`, `data-raw/` | Package datasets and the scripts that build them |
+| `inst/extdata/ve_fits.rds` | Precomputed fits shown in the Get started vignette |
 | `tests/testthat/` | Unit tests (no Stan fitting, so they run without CmdStan) |
 | `dev/checks/` | One script per lab-notebook entry, named `YYYY-MM-DD_NN_name.R` |
+| `vignettes/surviver.Rmd` | Get started vignette |
 | `vignettes/articles/` | Lab notebook, these notes, and the notebook’s figures. Website-only, not built by `R CMD check` |
 | `.github/workflows/pkgdown.yaml` | Builds and deploys the website |
 
@@ -121,6 +122,12 @@ withr::with_dir(Sys.getenv("HERMES_PATH", "~/Documents/ibm_hermes"), {
 - **Website.** Pushing to `main` rebuilds it. To preview locally:
   [`pkgdown::build_site()`](https://pkgdown.r-lib.org/reference/build_site.html)
   and open `docs/index.html` (`docs/` is git-ignored).
+- **Standard analysis.** Censor people reported within 7 days of
+  vaccination
+  (`counting_process(pop, censor_at_vaccination = reported_soon_after_vaccination(pop, 7))`)
+  and report VE from day 7 (lab notebook entry 12). For real data,
+  choose the window from published incubation and reporting-delay
+  distributions.
 - **Changes to HERMES** go on the `waning-vaccine-effectiveness` branch
   of the fork. Commit before regenerating data, because each dataset
   records the HERMES commit it came from, and the data script warns if
@@ -174,7 +181,8 @@ full$ind_id <- rownames(full)
 ```
 
 Snapshots after each vaccination round are `pop_data_intervention1.rds`
-… `pop_data_interventionN.rds`. Lab notebook entries 8 and 11 use these.
+… `pop_data_interventionN.rds`. Lab notebook entries 8, 11 and 12 use
+these.
 
 ## 6. Adapting the simulations
 
@@ -256,8 +264,7 @@ run_one <- function(seed, ve_floor) {
   ve$seed  <- seed
   ve
 }
-# about 20 s simulation + 40 s fit per replicate; parallelise over seeds
-# (e.g. with the future/furrr packages, one chain per core).
+# about 20 s simulation + 40 s fit per replicate
 ```
 
 Summarise bias (median − truth), coverage of the 90% interval and
@@ -307,25 +314,22 @@ In rough order of priority. The lab notebook explains the reasons.
     [`fit_ve()`](https://kylieainslie.github.io/surviver/reference/fit_ve.md).
     Expected to remove the calendar-time part of the late underestimate
     (entry 9).
-2.  **Censor people infected before vaccination** in every analysis:
-    `counting_process(pop, censor_at_vaccination = reported_soon_after_vaccination(pop, 7))`,
-    and report VE from day 7 (entry 12). The 7-day window suits HERMES’s
-    incubation and reporting delay; for real data, base it on published
-    incubation and delay distributions.
-3.  **Replicate simulations** (above) to measure bias and coverage
+2.  **Replicate simulations** (above) to measure bias and coverage
     properly, including the choice of censoring window. Only then judge
     whether a frailty term is needed.
-4.  **Targeted-vaccination scenario**, to test the project’s premise
+3.  **Targeted-vaccination scenario**, to test the project’s premise
     that the FoI improves VE estimation when exposure differs between
     vaccinated and unvaccinated people (entry 10).
-5.  **Frailty**, if bias remains after 1–3. Note the model works on
+4.  **Frailty**, if bias remains after 1–2. Note the model works on
     aggregated cells, so an individual random effect is not possible
     directly; a gamma frailty integrated out analytically (hazard
     divided by 1 + θ × cumulative hazard) can work at cell level.
-6.  **Delays between infection and reporting** (entry 7). Options range
-    from measuring time since vaccination to an estimated infection date
-    to treating infection time as latent.
-7.  **Apply to the workshop case study** (`data/` in the workshop repo,
+5.  **Delays between infection and reporting** (entries 7 and 12).
+    Options range from measuring time since vaccination to an estimated
+    infection date to treating infection time as latent. This would also
+    make the first week after vaccination estimable.
+6.  **Apply to the workshop case study** (`data/` in the [workshop
+    repository](https://github.com/kylieainslie/lorentz_center_workshop/tree/group-D/data),
     read with `ve_population("path/to/data")`). Decide the value of
     `theta` first (entry 1 records the inconsistency).
 
@@ -334,27 +338,29 @@ In rough order of priority. The lab notebook explains the reasons.
 - **HERMES reporting seed.** `get_default_delay_parameters()` has no
   `rng_seed`, so reporting is unseeded in every HERMES run outside our
   scenario function (lab notebook entry 4). Worth reporting to Lander
-  Willem (`lwillem/ibm_hermes`).
+  Willem
+  ([`lwillem/ibm_hermes`](https://github.com/lwillem/ibm_hermes/issues)).
 - **HERMES default parameters.** Our branch changed package-wide
   defaults (waning VE, hospitalisation, mortality; entry 2). Revert
   these to the originals before proposing the branch upstream, and set
   them inside the scenario function instead.
 - **Outdated documents.** `ibm_hermes/doc/vaccine_waning_vignette.Rmd`
-  still describes a 100,000-person scenario and old output paths. The
-  workshop repo’s `data/ve_test_scenarios/` and its simulated-data
-  vignette predate the reproducibility fix (entry 4); the package
-  versions are the reference.
+  still describes a 100,000-person scenario and old output paths, cites
+  [Young et al. 2018](https://doi.org/10.1093/infdis/jix632) as
+  “Ferdinands et al.”, and understates how much longer HERMES’s
+  incubation period is than published estimates (see lab notebook entry
+  2). The workshop repo’s `data/ve_test_scenarios/` and its
+  simulated-data vignette predate the reproducibility fix (entry 4); the
+  package versions are the reference.
 - **Stan prior on the first day.** Both models put
   $`\gamma(1) \sim N(-1, 1)`$, i.e. a prior centred on about 63% VE on
   the first day after vaccination. In the simulations VE starts at 0, so
   a prior centred at 0 may be more sensible. Not yet tested.
-- **POLYMOD lookup.** `socialmixr` warns that the automatic population
-  lookup used in `data-raw/polymod_nl.R` is deprecated. The saved matrix
-  is unaffected, but the script will need `survey_pop` in future
-  versions.
-- **Citation.** The waning-VE meta-analysis cited as “Ferdinands et al.
-  2018, *J Infect Dis* 217:731” may be by Young et al.; check before
-  publishing.
+- **POLYMOD lookup.**
+  [`socialmixr`](https://cran.r-project.org/package=socialmixr) warns
+  that the automatic population lookup used in `data-raw/polymod_nl.R`
+  is deprecated. The saved matrix is unaffected, but the script will
+  need `survey_pop` in future versions.
 - **Continuous integration.** Only the website is built on GitHub.
   Consider adding `usethis::use_github_action("check-standard")` so
   tests run on every push.
@@ -362,8 +368,10 @@ In rough order of priority. The lab notebook explains the reasons.
 ## 9. People
 
 - Kylie Ainslie: package maintainer.
-- Group D at the Lorentz Center workshop: Fanny Bergström, David Price,
-  Nathalie Dean, Hein Putter, Kylie Ainslie.
+- Group D at the [Lorentz Center
+  workshop](https://www.lorentzcenter.nl/connecting-survival-analysis-and-infectious-disease-modeling.html):
+  Fanny Bergström, David Price, Nathalie Dean, Hein Putter, Kylie
+  Ainslie.
 - HERMES: Lander Willem, University of Antwerp
   ([repository](https://github.com/lwillem/ibm_hermes), [user
   manual](https://github.com/lwillem/ibm_hermes/blob/lorentz_center_workshop/doc/user_manual_HERMES.pdf)),

@@ -4,7 +4,9 @@ Fits a Poisson approximation to a Cox model in which the log hazard
 ratio for vaccination, \\\gamma(t)\\, follows a random walk over days
 since vaccination: \$\$\log \mu = \log\beta + \log \bar I +
 \log(\text{person-days}) + \gamma(t)\\\text{vax}.\$\$ VE is \\1 -
-\exp(\gamma(t))\\. Requires cmdstanr and CmdStan.
+\exp(\gamma(t))\\. Requires [cmdstanr](https://mc-stan.org/cmdstanr/)
+and CmdStan. The compiled model is cached in
+`tools::R_user_dir("surviver", "cache")`.
 
 ## Usage
 

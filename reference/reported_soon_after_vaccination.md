@@ -31,10 +31,9 @@ Character vector of `ind_id`s.
 
 ## Details
 
-Censoring these people removes misclassified cases but also genuine
-early vaccine failures, which tends to overstate VE in the first days
-after vaccination. Choose `window` with that trade-off in mind (e.g. the
-upper range of incubation period plus reporting delay).
+Censoring also removes some genuine early vaccine failures, so VE is not
+estimable for the first `window` days after vaccination. Longer windows
+catch more prior infections but discard more genuine cases.
 
 ## Examples
 

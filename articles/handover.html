@@ -78,8 +78,8 @@ table.</p>
 <p><strong>Aim.</strong> Estimate vaccine effectiveness as a function of
 time since vaccination, VE(t), using a Poisson approximation to a Cox
 model in which the baseline hazard is driven by an age-structured force
-of infection (FoI). The project started as Group D at the Lorentz Center
-workshop (June 2026).</p>
+of infection (FoI). The project started as Group D at the <a href="https://www.lorentzcenter.nl/connecting-survival-analysis-and-infectious-disease-modeling.html" class="external-link">Lorentz
+Center workshop</a> (June 2026).</p>
 <p><strong>What works.</strong></p>
 <ul>
 <li>The full pipeline, from raw vaccination and case records to a fitted
@@ -90,20 +90,18 @@ and distinguishes waning from no waning (lab notebook entry 7).</li>
 <p><strong>Known limitations</strong> (details in the lab notebook):</p>
 <ul>
 <li>Time since vaccination is measured to the report date, not the
-infection date, so the estimate lags the truth (entry 7). People
-infected before vaccination but reported after it must be censored. The
-standard analysis now uses
-<code>counting_process(censor_at_vaccination = reported_soon_after_vaccination(pop, 7))</code>,
-which makes VE for the first 7 days after vaccination not estimable
-(entry 12).</li>
+infection date, so the estimate lags the truth (entry 7), and VE for the
+first 7 days is not estimable once early cases are censored (entry
+12).</li>
 <li>Late VE (90+ days) is underestimated in the waning scenario. About
 half of this comes from calendar time being confounded with time since
 vaccination (entry 9).</li>
 <li>In the current simulations the FoI adds no precision, because
 vaccination is random with respect to exposure (entry 10).</li>
-<li>HERMES vaccinates infectious and recovered people and resets their
-immunity (entry 11). This is deliberate: real campaigns vaccinate them
-too, so the analysis censors them instead (entry 12).</li>
+<li>HERMES vaccinates people who are infectious or recovered, which ends
+their infection or removes their natural immunity (entry 11). This is
+kept deliberately, because real campaigns vaccinate them too; the
+analysis censors them instead (entry 12).</li>
 </ul>
 </div>
 <div class="section level2">
@@ -167,8 +165,9 @@ automatically on every push to <code>main</code>
 <td><code>R/prepare.R</code></td>
 <td>Data preparation: <code><a href="../reference/ve_population.html">ve_population()</a></code>,
 <code><a href="../reference/daily_incidence.html">daily_incidence()</a></code>, <code><a href="../reference/daily_prevalence.html">daily_prevalence()</a></code>,
-<code><a href="../reference/counting_process.html">counting_process()</a></code>, <code><a href="../reference/expand_person_days.html">expand_person_days()</a></code>,
-…</td>
+<code><a href="../reference/counting_process.html">counting_process()</a></code>,
+<code><a href="../reference/reported_soon_after_vaccination.html">reported_soon_after_vaccination()</a></code>,
+<code><a href="../reference/expand_person_days.html">expand_person_days()</a></code>, …</td>
 </tr>
 <tr class="even">
 <td><code>R/foi.R</code></td>
@@ -185,8 +184,9 @@ automatically on every push to <code>main</code>
 <td><code>R/stan.R</code></td>
 <td>
 <code><a href="../reference/make_stan_data.html">make_stan_data()</a></code>, <code><a href="../reference/fit_ve.html">fit_ve()</a></code>,
-<code><a href="../reference/extract_ve.html">extract_ve()</a></code>, <code><a href="../reference/plot_ve.html">plot_ve()</a></code>,
-<code><a href="../reference/true_ve.html">true_ve()</a></code>, <code><a href="../reference/simulate_counts.html">simulate_counts()</a></code>
+<code><a href="../reference/extract_ve.html">extract_ve()</a></code>, <code><a href="../reference/expected_cases.html">expected_cases()</a></code>,
+<code><a href="../reference/plot_ve.html">plot_ve()</a></code>, <code><a href="../reference/true_ve.html">true_ve()</a></code>,
+<code><a href="../reference/simulate_counts.html">simulate_counts()</a></code>
 </td>
 </tr>
 <tr class="odd">
@@ -207,14 +207,22 @@ automatically on every push to <code>main</code>
 <td>Package datasets and the scripts that build them</td>
 </tr>
 <tr class="even">
+<td><code>inst/extdata/ve_fits.rds</code></td>
+<td>Precomputed fits shown in the Get started vignette</td>
+</tr>
+<tr class="odd">
 <td><code>tests/testthat/</code></td>
 <td>Unit tests (no Stan fitting, so they run without CmdStan)</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td><code>dev/checks/</code></td>
 <td>One script per lab-notebook entry, named
 <code>YYYY-MM-DD_NN_name.R</code>
 </td>
+</tr>
+<tr class="odd">
+<td><code>vignettes/surviver.Rmd</code></td>
+<td>Get started vignette</td>
 </tr>
 <tr class="even">
 <td><code>vignettes/articles/</code></td>
@@ -285,6 +293,13 @@ package with <code>devtools::load_all()</code>, and write outputs to
 To preview locally: <code><a href="https://pkgdown.r-lib.org/reference/build_site.html" class="external-link">pkgdown::build_site()</a></code> and open
 <code>docs/index.html</code> (<code>docs/</code> is git-ignored).</li>
 <li>
+<strong>Standard analysis.</strong> Censor people reported within 7
+days of vaccination
+(<code>counting_process(pop, censor_at_vaccination = reported_soon_after_vaccination(pop, 7))</code>)
+and report VE from day 7 (lab notebook entry 12). For real data, choose
+the window from published incubation and reporting-delay
+distributions.</li>
+<li>
 <strong>Changes to HERMES</strong> go on the
 <code>waning-vaccine-effectiveness</code> branch of the fork. Commit
 before regenerating data, because each dataset records the HERMES commit
@@ -336,8 +351,8 @@ snapshot:</p>
 <span><span class="co"># time_of_vaccination, time_of_death, infector_id, ...</span></span></code></pre></div>
 <p>Snapshots after each vaccination round are
 <code>pop_data_intervention1.rds</code> …
-<code>pop_data_interventionN.rds</code>. Lab notebook entries 8 and 11
-use these.</p>
+<code>pop_data_interventionN.rds</code>. Lab notebook entries 8, 11 and
+12 use these.</p>
 </div>
 <div class="section level2">
 <h2 id="adapting-the-simulations">6. Adapting the simulations<a class="anchor" aria-label="anchor" href="#adapting-the-simulations"></a>
@@ -492,8 +507,7 @@ replicate. A sketch:</p>
 <span>  <span class="va">ve</span><span class="op">$</span><span class="va">seed</span>  <span class="op">&lt;-</span> <span class="va">seed</span></span>
 <span>  <span class="va">ve</span></span>
 <span><span class="op">}</span></span>
-<span><span class="co"># about 20 s simulation + 40 s fit per replicate; parallelise over seeds</span></span>
-<span><span class="co"># (e.g. with the future/furrr packages, one chain per core).</span></span></code></pre></div>
+<span><span class="co"># about 20 s simulation + 40 s fit per replicate</span></span></code></pre></div>
 <p>Summarise bias (median − truth), coverage of the 90% interval and
 interval width by range of days since vaccination. The piecewise GLM in
 <code>dev/checks/2026-11-25_03_calendar_time.R</code> takes seconds and
@@ -546,13 +560,6 @@ name to <code><a href="../reference/ve_stan_file.html">ve_stan_file()</a></code>
 to remove the calendar-time part of the late underestimate (entry
 9).</li>
 <li>
-<strong>Censor people infected before vaccination</strong> in every
-analysis:
-<code>counting_process(pop, censor_at_vaccination = reported_soon_after_vaccination(pop, 7))</code>,
-and report VE from day 7 (entry 12). The 7-day window suits HERMES’s
-incubation and reporting delay; for real data, base it on published
-incubation and delay distributions.</li>
-<li>
 <strong>Replicate simulations</strong> (above) to measure bias and
 coverage properly, including the choice of censoring window. Only then
 judge whether a frailty term is needed.</li>
@@ -561,19 +568,21 @@ judge whether a frailty term is needed.</li>
 project’s premise that the FoI improves VE estimation when exposure
 differs between vaccinated and unvaccinated people (entry 10).</li>
 <li>
-<strong>Frailty</strong>, if bias remains after 1–3. Note the model
+<strong>Frailty</strong>, if bias remains after 1–2. Note the model
 works on aggregated cells, so an individual random effect is not
 possible directly; a gamma frailty integrated out analytically (hazard
 divided by 1 + θ × cumulative hazard) can work at cell level.</li>
 <li>
-<strong>Delays between infection and reporting</strong> (entry 7).
-Options range from measuring time since vaccination to an estimated
-infection date to treating infection time as latent.</li>
+<strong>Delays between infection and reporting</strong> (entries 7
+and 12). Options range from measuring time since vaccination to an
+estimated infection date to treating infection time as latent. This
+would also make the first week after vaccination estimable.</li>
 <li>
 <strong>Apply to the workshop case study</strong>
-(<code>data/</code> in the workshop repo, read with
-<code>ve_population("path/to/data")</code>). Decide the value of
-<code>theta</code> first (entry 1 records the inconsistency).</li>
+(<code>data/</code> in the <a href="https://github.com/kylieainslie/lorentz_center_workshop/tree/group-D/data" class="external-link">workshop
+repository</a>, read with <code>ve_population("path/to/data")</code>).
+Decide the value of <code>theta</code> first (entry 1 records the
+inconsistency).</li>
 </ol>
 </div>
 <div class="section level2">
@@ -585,7 +594,7 @@ infection date to treating infection time as latent.</li>
 <code>get_default_delay_parameters()</code> has no
 <code>rng_seed</code>, so reporting is unseeded in every HERMES run
 outside our scenario function (lab notebook entry 4). Worth reporting to
-Lander Willem (<code>lwillem/ibm_hermes</code>).</li>
+Lander Willem (<a href="https://github.com/lwillem/ibm_hermes/issues" class="external-link"><code>lwillem/ibm_hermes</code></a>).</li>
 <li>
 <strong>HERMES default parameters.</strong> Our branch changed
 package-wide defaults (waning VE, hospitalisation, mortality; entry 2).
@@ -594,10 +603,12 @@ set them inside the scenario function instead.</li>
 <li>
 <strong>Outdated documents.</strong>
 <code>ibm_hermes/doc/vaccine_waning_vignette.Rmd</code> still describes
-a 100,000-person scenario and old output paths. The workshop repo’s
-<code>data/ve_test_scenarios/</code> and its simulated-data vignette
-predate the reproducibility fix (entry 4); the package versions are the
-reference.</li>
+a 100,000-person scenario and old output paths, cites <a href="https://doi.org/10.1093/infdis/jix632" class="external-link">Young et al. 2018</a> as
+“Ferdinands et al.”, and understates how much longer HERMES’s incubation
+period is than published estimates (see lab notebook entry 2). The
+workshop repo’s <code>data/ve_test_scenarios/</code> and its
+simulated-data vignette predate the reproducibility fix (entry 4); the
+package versions are the reference.</li>
 <li>
 <strong>Stan prior on the first day.</strong> Both models put
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>γ</mi><mo stretchy="false" form="prefix">(</mo><mn>1</mn><mo stretchy="false" form="postfix">)</mo><mo>∼</mo><mi>N</mi><mo stretchy="false" form="prefix">(</mo><mi>−</mi><mn>1</mn><mo>,</mo><mn>1</mn><mo stretchy="false" form="postfix">)</mo></mrow><annotation encoding="application/x-tex">\gamma(1) \sim N(-1, 1)</annotation></semantics></math>,
@@ -605,15 +616,11 @@ i.e. a prior centred on about 63% VE on the first day after vaccination.
 In the simulations VE starts at 0, so a prior centred at 0 may be more
 sensible. Not yet tested.</li>
 <li>
-<strong>POLYMOD lookup.</strong> <code>socialmixr</code> warns that
-the automatic population lookup used in
+<strong>POLYMOD lookup.</strong> <a href="https://cran.r-project.org/package=socialmixr" class="external-link"><code>socialmixr</code></a>
+warns that the automatic population lookup used in
 <code>data-raw/polymod_nl.R</code> is deprecated. The saved matrix is
 unaffected, but the script will need <code>survey_pop</code> in future
 versions.</li>
-<li>
-<strong>Citation.</strong> The waning-VE meta-analysis cited as
-“Ferdinands et al. 2018, <em>J Infect Dis</em> 217:731” may be by Young
-et al.; check before publishing.</li>
 <li>
 <strong>Continuous integration.</strong> Only the website is built
 on GitHub. Consider adding
@@ -626,8 +633,9 @@ on every push.</li>
 </h2>
 <ul>
 <li>Kylie Ainslie: package maintainer.</li>
-<li>Group D at the Lorentz Center workshop: Fanny Bergström, David
-Price, Nathalie Dean, Hein Putter, Kylie Ainslie.</li>
+<li>Group D at the <a href="https://www.lorentzcenter.nl/connecting-survival-analysis-and-infectious-disease-modeling.html" class="external-link">Lorentz
+Center workshop</a>: Fanny Bergström, David Price, Nathalie Dean, Hein
+Putter, Kylie Ainslie.</li>
 <li>HERMES: Lander Willem, University of Antwerp (<a href="https://github.com/lwillem/ibm_hermes" class="external-link">repository</a>, <a href="https://github.com/lwillem/ibm_hermes/blob/lorentz_center_workshop/doc/user_manual_HERMES.pdf" class="external-link">user
 manual</a>), with contributions from Steven Abrams on the workshop
 branch; the case study was prepared by the workshop organisers.</li>
