@@ -75,6 +75,18 @@ ve  <- extract_ve(fit)
 plot_ve(ve[ve$days_since_vax > 7, ], truth = ve_sim_waning$params)
 ```
 
+![Estimated VE (blue, with 90% credible interval) against the true VE
+(red dashed) for the two simulated
+scenarios.](reference/figures/README-ve-fit.png)
+
+Estimated VE (blue, with 90% credible interval) against the true VE (red
+dashed) for the two simulated scenarios.
+
+See the [Get
+started](https://kylieainslie.github.io/surviver/articles/surviver.html)
+vignette for the epidemic dynamics, the model fit to cases, and this
+comparison in detail.
+
 To use your own data, pass
 [`ve_population()`](https://kylieainslie.github.io/surviver/reference/ve_population.md)
 a folder containing `demographic_data.rds`, `vaccination_data.rds` and
@@ -105,12 +117,19 @@ random walk.
 | `ve_sim_no_waning` | As above, but VE stays at 0.8 after the ramp |
 | `polymod_nl` | POLYMOD contact matrix for the Netherlands, five age groups |
 
-The simulated datasets were generated with the
-[HERMES](https://github.com/kylieainslie/ibm_hermes/tree/waning-vaccine-effectiveness)
-individual-based model (household, school, workplace and community
-transmission), extended with waning vaccine protection. The script is
-`data-raw/ve_test_scenarios.R`; it needs a local clone of HERMES (set
-`HERMES_PATH`), and each dataset records the HERMES commit it came from.
+The simulated datasets were generated with **HERMES** (Health, Epidemic
+and Economic R-based Microsimulation Engine for Individual-based
+Simulations), an individual-based model of transmission through
+households, schools, workplaces and the community, developed by Lander
+Willem (University of Antwerp). See the [HERMES
+repository](https://github.com/lwillem/ibm_hermes) and its [user
+manual](https://github.com/lwillem/ibm_hermes/blob/lorentz_center_workshop/doc/user_manual_HERMES.pdf).
+For this package HERMES was extended with vaccine protection that wanes
+with time since vaccination ([`waning-vaccine-effectiveness`
+branch](https://github.com/kylieainslie/ibm_hermes/tree/waning-vaccine-effectiveness)
+of our fork). The script is `data-raw/ve_test_scenarios.R`; it needs a
+local clone of HERMES (set `HERMES_PATH`), and each dataset records the
+HERMES commit it came from.
 
 ## Development
 
@@ -123,6 +142,14 @@ transmission), extended with waning vaccine protection. The script is
   observed.
 - `dev/checks/`: scripts that reproduce each lab-notebook entry.
 - `data-raw/`: scripts that build the package datasets.
+
+## Acknowledgements
+
+The method was developed by Group D at the Lorentz Center workshop
+*Connecting Survival Analysis and Infectious Disease Modelling* (Leiden,
+June 2026): Fanny Bergström, David Price, Nathalie Dean, Hein Putter and
+Kylie Ainslie. The simulated data use HERMES by Lander Willem
+(<https://github.com/lwillem/ibm_hermes>).
 
 ## Licence
 

@@ -51,6 +51,8 @@ hazard ratio over days since vaccination.
   : Summarise VE by day since vaccination
 - [`plot_ve()`](https://kylieainslie.github.io/surviver/reference/plot_ve.md)
   : Plot estimated VE by day since vaccination
+- [`expected_cases()`](https://kylieainslie.github.io/surviver/reference/expected_cases.md)
+  : Observed and model-expected case counts
 
 ## Validation
 

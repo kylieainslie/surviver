@@ -30,6 +30,7 @@
 
     <div id="navbar" class="collapse navbar-collapse ms-3">
       <ul class="navbar-nav me-auto">
+<li class="nav-item"><a class="nav-link" href="../articles/surviver.html">Get started</a></li>
 <li class="nav-item"><a class="nav-link" href="../reference/index.html">Reference</a></li>
 <li class="active nav-item dropdown">
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-articles" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Articles</button>
@@ -128,8 +129,11 @@ notebook</td>
 <td>HERMES simulator with the waning-VE extension</td>
 <td>GitHub <a href="https://github.com/kylieainslie/ibm_hermes/tree/waning-vaccine-effectiveness" class="external-link"><code>kylieainslie/ibm_hermes</code></a>,
 branch <strong><code>waning-vaccine-effectiveness</code></strong>. A
-fork of <code>lwillem/ibm_hermes</code> (Lander Willem); our changes are
-not upstream</td>
+fork of <a href="https://github.com/lwillem/ibm_hermes" class="external-link"><code>lwillem/ibm_hermes</code></a>
+(Lander Willem); our changes are not upstream. The model is described in
+the <a href="https://github.com/lwillem/ibm_hermes/blob/lorentz_center_workshop/doc/user_manual_HERMES.pdf" class="external-link">HERMES
+user manual</a>
+</td>
 </tr>
 <tr class="odd">
 <td>Workshop record: original scripts, case-study data (200,000 people),
@@ -305,6 +309,14 @@ changes.</li>
 drops HERMES-only columns, stores the HERMES commit in
 <code>hermes_commit</code>, and saves with
 <code>usethis::use_data()</code>.</p>
+<p><strong>Precomputed fits.</strong> The “Get started” vignette shows
+fits loaded from <code>inst/extdata/ve_fits.rds</code>, because Stan
+cannot run during <code>R CMD check</code> or on GitHub Actions. Rerun
+<code>source("data-raw/ve_fits.R")</code> (about 2 minutes) after any
+change to the datasets, the Stan models or the standard analysis, then
+copy the VE figure from the rebuilt site
+(<code>docs/articles/surviver_files/figure-html/fit-ve-1.png</code>) to
+<code>man/figures/README-ve-fit.png</code>.</p>
 <p><strong>Reproducibility.</strong> Every random step in the scenario
 is seeded from <code>rng_seed</code> (default 2026), including
 reporting. The current datasets were made with HERMES commit
@@ -616,8 +628,9 @@ on every push.</li>
 <li>Kylie Ainslie: package maintainer.</li>
 <li>Group D at the Lorentz Center workshop: Fanny Bergström, David
 Price, Nathalie Dean, Hein Putter, Kylie Ainslie.</li>
-<li>HERMES: Lander Willem (<code>lwillem/ibm_hermes</code>); the case
-study was prepared by the workshop organisers.</li>
+<li>HERMES: Lander Willem, University of Antwerp (<a href="https://github.com/lwillem/ibm_hermes" class="external-link">repository</a>, <a href="https://github.com/lwillem/ibm_hermes/blob/lorentz_center_workshop/doc/user_manual_HERMES.pdf" class="external-link">user
+manual</a>), with contributions from Steven Abrams on the workshop
+branch; the case study was prepared by the workshop organisers.</li>
 </ul>
 </div>
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>

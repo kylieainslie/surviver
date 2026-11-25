@@ -45,7 +45,7 @@ workshop (June 2026).
 | What | Where |
 |----|----|
 | This package: code, data, Stan models, tests, website, lab notebook | GitHub [`kylieainslie/surviver`](https://github.com/kylieainslie/surviver) (public, branch `main`) |
-| HERMES simulator with the waning-VE extension | GitHub [`kylieainslie/ibm_hermes`](https://github.com/kylieainslie/ibm_hermes/tree/waning-vaccine-effectiveness), branch **`waning-vaccine-effectiveness`**. A fork of `lwillem/ibm_hermes` (Lander Willem); our changes are not upstream |
+| HERMES simulator with the waning-VE extension | GitHub [`kylieainslie/ibm_hermes`](https://github.com/kylieainslie/ibm_hermes/tree/waning-vaccine-effectiveness), branch **`waning-vaccine-effectiveness`**. A fork of [`lwillem/ibm_hermes`](https://github.com/lwillem/ibm_hermes) (Lander Willem); our changes are not upstream. The model is described in the [HERMES user manual](https://github.com/lwillem/ibm_hermes/blob/lorentz_center_workshop/doc/user_manual_HERMES.pdf) |
 | Workshop record: original scripts, case-study data (200,000 people), the first Group D vignettes | GitHub [`kylieainslie/lorentz_center_workshop`](https://github.com/kylieainslie/lorentz_center_workshop), branch `group-D`, `analysis/group-D/` and `data/`. Kept as a historical record; not developed further |
 | Website | <https://kylieainslie.github.io/surviver/>, rebuilt automatically on every push to `main` |
 
@@ -143,6 +143,14 @@ The script loads HERMES, calls `simulate_waning_scenario()` once with
 `ve_floor = 0.1` and once with `ve_floor = 0.8`, drops HERMES-only
 columns, stores the HERMES commit in `hermes_commit`, and saves with
 `usethis::use_data()`.
+
+**Precomputed fits.** The “Get started” vignette shows fits loaded from
+`inst/extdata/ve_fits.rds`, because Stan cannot run during `R CMD check`
+or on GitHub Actions. Rerun `source("data-raw/ve_fits.R")` (about 2
+minutes) after any change to the datasets, the Stan models or the
+standard analysis, then copy the VE figure from the rebuilt site
+(`docs/articles/surviver_files/figure-html/fit-ve-1.png`) to
+`man/figures/README-ve-fit.png`.
 
 **Reproducibility.** Every random step in the scenario is seeded from
 `rng_seed` (default 2026), including reporting. The current datasets
@@ -356,5 +364,8 @@ In rough order of priority. The lab notebook explains the reasons.
 - Kylie Ainslie: package maintainer.
 - Group D at the Lorentz Center workshop: Fanny Bergström, David Price,
   Nathalie Dean, Hein Putter, Kylie Ainslie.
-- HERMES: Lander Willem (`lwillem/ibm_hermes`); the case study was
-  prepared by the workshop organisers.
+- HERMES: Lander Willem, University of Antwerp
+  ([repository](https://github.com/lwillem/ibm_hermes), [user
+  manual](https://github.com/lwillem/ibm_hermes/blob/lorentz_center_workshop/doc/user_manual_HERMES.pdf)),
+  with contributions from Steven Abrams on the workshop branch; the case
+  study was prepared by the workshop organisers.

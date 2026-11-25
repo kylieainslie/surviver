@@ -25,9 +25,13 @@
 - `counting_process(censor_at_vaccination = )` and
   [`reported_soon_after_vaccination()`](https://kylieainslie.github.io/surviver/reference/reported_soon_after_vaccination.md)
   to censor people infected before vaccination but reported after it.
+- [`expected_cases()`](https://kylieainslie.github.io/surviver/reference/expected_cases.md)
+  compares observed and model-expected case counts.
 - Validation helpers:
   [`true_ve()`](https://kylieainslie.github.io/surviver/reference/true_ve.md),
   [`simulate_counts()`](https://kylieainslie.github.io/surviver/reference/simulate_counts.md).
 - Datasets: `ve_sim_waning`, `ve_sim_no_waning` (HERMES simulations with
   known VE(t)) and `polymod_nl`.
+- “Get started” vignette with figures of the epidemic dynamics, model
+  fit and VE estimates (fits precomputed in `inst/extdata/ve_fits.rds`).
 - Lab notebook article recording development and validation checks.
