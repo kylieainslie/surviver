@@ -84,7 +84,7 @@ and `incidence` data frames (see `?ve_population`).
 | Exposure | `daily_incidence()`, `daily_prevalence()`, `force_of_infection()`, `age_group_sizes()` |
 | Survival data | `counting_process()`, `expand_person_days()`, `make_stan_data()` |
 | Fit and summarise | `fit_ve()`, `extract_ve()`, `plot_ve()` |
-| Validation | `true_ve()`, `simulate_counts()` |
+| Validation | `true_ve()`, `simulate_counts()`, `contact_matrix_hermes()` |
 
 Two Stan models are bundled (`ve_stan_file()`): `"noncentered"` (default)
 and `"centered"` parameterisations of the random walk.

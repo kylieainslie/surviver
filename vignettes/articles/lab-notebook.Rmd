@@ -31,6 +31,8 @@ temporary folder).
 | Why is late (90+ day) VE underestimated in the waning scenario? | About half explained by calendar time leaking into time since vaccination. Remainder within noise | [8](#e08), [9](#e09) |
 | Do unreported (immune) infections in the risk set bias VE? | No detectable effect | [8](#e08) |
 | Does the FoI offset improve precision? | Not in this simulation once calendar time is adjusted for | [9](#e09) |
+| Does using HERMES's true contact structure instead of POLYMOD change VE(t)? | No. It describes who gets infected much better, but VE estimates and their precision are unchanged | [10](#e10) |
+| When should the FoI help? | **Open**: probably only when exposure differs between vaccinated and unvaccinated people (e.g. vaccination targeted by age). Needs a scenario that tests this | [10](#e10) |
 | Is the remaining late bias real or chance? | **Open**: needs replicate simulations | — |
 | Is a frailty term needed? | **Open**: decide after replicate simulations | — |
 | What value of `theta` (infectiousness of vaccinated cases) should the case-study analysis use? | **Open**: the workshop text said 0.5, its code used 1, the package default is 0 | [1](#e01), [6](#e06) |
@@ -42,8 +44,11 @@ temporary folder).
    walk on `log_beta` by day or week), keeping the FoI offset.
 2. Run 20–50 replicate HERMES simulations per scenario to measure bias and
    interval coverage, rather than judging from one realisation.
-3. Revisit frailty once (1) and (2) are done.
-4. Extend the method to account for the delay between infection and
+3. Simulate a scenario where vaccination is targeted (e.g. by age, oldest
+   first), so vaccinated and unvaccinated people face different exposure,
+   and test whether the FoI then improves bias or precision.
+4. Revisit frailty once (1) and (2) are done.
+5. Extend the method to account for the delay between infection and
    reporting.
 
 ### Timeline
@@ -59,6 +64,7 @@ temporary folder).
 | 2026-11-25 | [7. Recovery of VE(t) on simulated data](#e07) |
 | 2026-11-25 | [8. Unreported infections in the risk set](#e08) |
 | 2026-11-25 | [9. Calendar time and time since vaccination](#e09) |
+| 2026-11-25 | [10. FoI from the HERMES contact structure instead of POLYMOD](#e10) |
 
 ---
 
@@ -508,6 +514,115 @@ fig("2026-11-25_03_calendar_time.png")
 underestimate. Next: add calendar-time flexibility to the Stan model, then
 judge any remaining bias, and the need for frailty, with replicate
 simulations.
+
+---
+
+## 10. 2026-11-25 — FoI from the HERMES contact structure instead of POLYMOD {#e10}
+
+**Question.** Entry 9 found that the POLYMOD-based FoI added nothing once
+calendar time was adjusted for, possibly because POLYMOD does not describe
+how HERMES transmits. Does building the FoI from HERMES's own contact
+structure change the VE(t) estimates?
+
+**The HERMES contact matrix.** HERMES has no contact matrix as such. Each
+day an infectious person \(i\) gives every susceptible person \(j\) an
+infection probability of `transmission_prob` \(\times\, w_{ij}\), with
+\(w_{ij} = 1 - e^{-4/N}\) (community) \(+ 0.9\) if same household
+\(+ 0.5\) if same school class \(+ 0.1\) if same workplace. The new function
+`contact_matrix_hermes()` averages \(w_{ij}\) over age groups using the
+household, class and workplace IDs in the data. It was checked to match a
+person-by-person calculation exactly and to be reciprocal
+(\(N_{a'}C_{a'a} = N_a C_{aa'}\)).
+
+Mean daily weighted contacts (row = person's age group, column = contacts'
+age group):
+
+| | 0–4 | 5–17 | 18–49 | 50–64 | 65+ | **Total** | POLYMOD total |
+|---|---|---|---|---|---|---|---|
+| 0–4 | 5.42 | 0.91 | 2.91 | 0.77 | 0.79 | 10.8 | 11.9 |
+| 5–17 | 0.28 | 10.42 | 2.85 | 0.83 | 0.79 | 15.2 | 20.7 |
+| 18–49 | 0.38 | 1.24 | 3.29 | 1.14 | 0.81 | 6.9 | 15.4 |
+| 50–64 | 0.21 | 0.73 | 2.29 | 1.67 | 0.88 | 5.8 | 11.6 |
+| 65+ | 0.21 | 0.68 | 1.60 | 0.87 | 1.40 | 4.8 | 7.3 |
+
+Compared with POLYMOD, HERMES contact is concentrated in school classes and
+households, and adults have far fewer contacts.
+
+**Method.** For both scenarios, three FoI versions, otherwise as in entries
+7 and 9: **POLYMOD**, **HERMES** (`contact_matrix_hermes()`), and
+**overall** (total prevalence, no age structure). For each:
+
+1. how well the FoI offset alone tracks infections in unvaccinated people
+   (Poisson deviance of unvaccinated cells, with one baseline, and with an
+   added age effect);
+2. the Stan recovery fit from entry 7;
+3. the piecewise GLMs A (one baseline) and B (per-day baseline) from entry 9.
+
+**Script.** `dev/checks/2026-11-25_04_hermes_contacts.R` (about 5 minutes).
+
+**Results.**
+
+*1. Fit to unvaccinated infections* (Poisson deviance, lower is better; the
+range shows how much an added age effect has to correct the FoI):
+
+| Scenario | FoI | One baseline | With age effect | Age correction needed (rate ratios) |
+|---|---|---|---|---|
+| Waning | POLYMOD | 920 | 828 | 0.72–1.72 |
+| Waning | HERMES | **858** | 836 | 0.89–1.22 |
+| Waning | overall | 1,424 | 874 | 0.39–2.18 |
+| No waning | POLYMOD | 821 | 758 | 0.62–1.23 |
+| No waning | HERMES | **793** | 765 | 0.81–1.12 |
+| No waning | overall | 1,324 | 813 | 0.31–1.60 |
+
+*2. Stan recovery:*
+
+| Scenario | FoI | Coverage (90% CrI) | Mean abs. error, days 1–120 | Error, days 14–89 | Error, days 90+ | Mean CrI width, days 1–90 |
+|---|---|---|---|---|---|---|
+| Waning | POLYMOD | 0.93 | 0.107 | +0.03 | −0.22 | 0.39 |
+| Waning | HERMES | 0.93 | 0.107 | +0.03 | −0.20 | 0.39 |
+| Waning | overall | 0.93 | 0.101 | +0.03 | −0.18 | 0.39 |
+| No waning | POLYMOD | 0.93 | 0.069 | −0.05 | +0.04 | 0.32 |
+| No waning | HERMES | 0.92 | 0.065 | −0.05 | +0.04 | 0.32 |
+| No waning | overall | 0.90 | 0.072 | −0.05 | +0.04 | 0.33 |
+
+All fits converged (max R-hat ≤ 1.004, at most 1 divergent transition).
+
+*3. Piecewise GLMs* (waning scenario, case-weighted error from day 90):
+POLYMOD A −0.22, B −0.10; HERMES A −0.22, B −0.09; overall A −0.20,
+B −0.14. Standard errors of the log hazard ratios (days 14–89) were
+identical to three decimals across FoI versions (0.216–0.217 waning,
+0.260–0.261 no waning).
+
+```{r, fig.alt = "Estimated VE by day since vaccination with POLYMOD, HERMES and overall-prevalence FoI; the three curves overlap almost exactly in both scenarios."}
+fig("2026-11-25_04_hermes_contacts.png")
+```
+
+**Observations.**
+
+1. The HERMES matrix is the better description of exposure: it fits
+   unvaccinated infections best with a single baseline and needs the
+   smallest age correction. POLYMOD over-weights adult contacts.
+2. VE(t) is essentially unaffected by which FoI is used, including no age
+   structure at all: same coverage, error and interval width.
+3. The late underestimate is still there with the true contact structure,
+   so it is not caused by POLYMOD being wrong about who mixes with whom. It
+   is about the level of exposure over calendar time (entry 9).
+
+**Interpretation.** VE is a comparison between vaccinated and unvaccinated
+people within the same age group and day. In these scenarios vaccination is
+random with respect to age and contacts (each round is a simple random
+sample of 3% of eligible people; coverage by day 180 is 35–40% in every age
+group), so vaccinated and unvaccinated people in a cell face the same
+exposure and the FoI cancels out of the comparison. Its age structure can
+then neither remove bias nor add precision. The FoI should matter when
+exposure differs between vaccinated and unvaccinated people, for example
+when vaccination is targeted by age or is related to contact behaviour.
+That is the situation the project premise is about, and these scenarios do
+not test it.
+
+**Conclusion.** Use of POLYMOD is not what limits the method on these data.
+Added next step: simulate a targeted-vaccination scenario to test the FoI
+premise directly.
 
 ---
 

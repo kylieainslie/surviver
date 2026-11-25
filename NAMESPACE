@@ -2,6 +2,7 @@
 
 export(add_age_group)
 export(age_group_sizes)
+export(contact_matrix_hermes)
 export(counting_process)
 export(daily_incidence)
 export(daily_prevalence)
