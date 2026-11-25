@@ -1,0 +1,16 @@
+Package: surviver
+Title: Estimate Time-Varying Vaccine Effectiveness
+Version: 0.0.0.9000
+Authors@R: 
+    person("Kylie", "Ainslie", , "ainslie.kylie@gmail.com", role = c("aut", "cre"))
+Description: Methods for estimating vaccine effectiveness as a function of
+    time since vaccination from individual-level surveillance data,
+    including simulated ground-truth datasets for validating estimators.
+License: `use_mit_license()`, `use_gpl3_license()` or friends to pick a
+    license
+Encoding: UTF-8
+Roxygen: list(markdown = TRUE)
+RoxygenNote: 8.0.0
+Suggests: 
+    testthat (>= 3.0.0)
+Config/testthat/edition: 3
