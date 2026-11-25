@@ -1,8 +1,8 @@
-# Validate fit_ve() against the known VE(t) in both HERMES scenarios.
+# Lab notebook 2026-11-25 #1: validate fit_ve() against the known VE(t) in both HERMES scenarios.
 # Run from the package root. Takes about 1-2 minutes; needs cmdstanr + CmdStan.
 devtools::load_all(quiet = TRUE)
-out_dir <- file.path(tempdir(), "surviver-validation")
-dir.create(out_dir, showWarnings = FALSE)
+out_dir <- Sys.getenv("SURVIVER_CHECKS_OUT", file.path(tempdir(), "surviver-checks"))
+dir.create(out_dir, showWarnings = FALSE, recursive = TRUE)
 
 cat("CmdStan:", cmdstanr::cmdstan_path(), as.character(cmdstanr::cmdstan_version()), "\n")
 

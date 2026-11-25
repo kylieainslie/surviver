@@ -29,3 +29,4 @@ Imports:
     tools,
     withr
 Additional_repositories: https://stan-dev.r-universe.dev
+Config/Needs/website: rmarkdown
