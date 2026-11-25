@@ -1,8 +1,8 @@
 ---
 title: "Lab notebook"
 description: >
-  Dated record of diagnostic and validation checks on the surviver VE(t)
-  method: what was asked, what was run, what came out, and what it means.
+  Dated record of the development and validation of the surviver VE(t)
+  method: what was done, what was asked, what came out, and what it means.
 ---
 
 ```{r, include = FALSE}
@@ -10,14 +10,15 @@ knitr::opts_chunk$set(collapse = TRUE, comment = "#>", echo = FALSE)
 fig <- function(name) knitr::include_graphics(file.path("figures", name))
 ```
 
-This notebook records checks on the method as they are done. Results are
+This notebook is the record of the project: how the method and the
+simulated test data were developed, and every check run on them. Results are
 written down as observed at the time and are **not** recomputed when the
 page is rebuilt. Later findings are added as new dated entries (or dated
 notes) rather than by editing earlier results.
 
-Each entry links to the script that reproduces it, in `dev/checks/`. Run
-scripts from the package root. Outputs go to `$SURVIVER_CHECKS_OUT`
-(default: a temporary folder).
+Where an entry has a reproducing script, it is in `dev/checks/`. Run scripts
+from the package root; outputs go to `$SURVIVER_CHECKS_OUT` (default: a
+temporary folder).
 
 ## Status and open questions
 
@@ -25,13 +26,15 @@ scripts from the package root. Outputs go to `$SURVIVER_CHECKS_OUT`
 
 | Question | Status | Entry |
 |---|---|---|
-| Does `fit_ve()` recover a known VE(t)? | Yes, broadly; 92–93% of days inside the 90% CrI | [#1](#e01) |
-| Why is the estimated curve about a week behind the truth? | Reporting time vs infection time. **Deferred** to the planned delay extension | [#1](#e01) |
-| Why is late (90+ day) VE underestimated in the waning scenario? | About half explained by calendar time leaking into time since vaccination. Remainder within noise | [#2](#e02), [#3](#e03) |
-| Do unreported (immune) infections in the risk set bias VE? | No detectable effect | [#2](#e02) |
-| Does the FoI offset improve precision? | Not in this simulation once calendar time is adjusted for | [#3](#e03) |
+| Does `fit_ve()` recover a known VE(t)? | Yes, broadly; 92–93% of days inside the 90% CrI | [7](#e07) |
+| Why is the estimated curve about a week behind the truth? | Reporting time vs infection time. **Deferred** to the planned delay extension | [7](#e07) |
+| Why is late (90+ day) VE underestimated in the waning scenario? | About half explained by calendar time leaking into time since vaccination. Remainder within noise | [8](#e08), [9](#e09) |
+| Do unreported (immune) infections in the risk set bias VE? | No detectable effect | [8](#e08) |
+| Does the FoI offset improve precision? | Not in this simulation once calendar time is adjusted for | [9](#e09) |
 | Is the remaining late bias real or chance? | **Open**: needs replicate simulations | — |
 | Is a frailty term needed? | **Open**: decide after replicate simulations | — |
+| What value of `theta` (infectiousness of vaccinated cases) should the case-study analysis use? | **Open**: the workshop text said 0.5, its code used 1, the package default is 0 | [1](#e01), [6](#e06) |
+| Should the HERMES reporting-seed bug be reported upstream? | **Open**: affects reproducibility of all HERMES case-study data | [4](#e04) |
 
 ### Next steps
 
@@ -40,19 +43,300 @@ scripts from the package root. Outputs go to `$SURVIVER_CHECKS_OUT`
 2. Run 20–50 replicate HERMES simulations per scenario to measure bias and
    interval coverage, rather than judging from one realisation.
 3. Revisit frailty once (1) and (2) are done.
+4. Extend the method to account for the delay between infection and
+   reporting.
+
+### Timeline
+
+| Date | Entry |
+|---|---|
+| 2026-06-16 to 19 | [1. Method developed at the Lorentz Center workshop (Group D)](#e01) |
+| 2026-09-10 | [2. HERMES extended with waning VE; first ground-truth datasets](#e02) |
+| 2026-11-25 | [3. Work consolidated into the surviver package](#e03) |
+| 2026-11-25 | [4. HERMES scenario made reproducible; data regenerated](#e04) |
+| 2026-11-25 | [5. The simulated datasets](#e05) |
+| 2026-11-25 | [6. Analysis code ported into the package](#e06) |
+| 2026-11-25 | [7. Recovery of VE(t) on simulated data](#e07) |
+| 2026-11-25 | [8. Unreported infections in the risk set](#e08) |
+| 2026-11-25 | [9. Calendar time and time since vaccination](#e09) |
 
 ---
 
-## 2026-11-25 — #1: Recovery of VE(t) on simulated data {#e01}
+## 1. 2026-06-16 to 19 — Method developed at the Lorentz Center workshop {#e01}
+
+**Context.** Group D (Fanny Bergström, David Price, Nathalie Dean, Hein
+Putter, Kylie Ainslie) at the Lorentz Center workshop *Connecting Survival
+Analysis and Infectious Disease Modelling* (Leiden, 15–19 June 2026). Aim:
+improve the efficiency of VE estimation by using the force of infection
+experienced by different subpopulations.
+
+**Data.** The workshop case study: a HERMES simulation of 200,000 people
+generated by the organisers, provided as `demographic_data.rds`,
+`vaccination_data.rds` and `incidence_data_reduced.rds`. The VE generating
+that data is not known to participants.
+
+**Method developed** (workshop repo, branch `group-D`, `analysis/group-D/`):
+
+- `data_wrangling.R`: merge the data, sample a cohort of 10,000, daily
+  incidence by age group and vaccination status, counting-process data split
+  at vaccination, expansion to person-days, prevalence from reported cases
+  (7-day infectious period starting 2 days before reporting).
+- `prepare_stan_data.R`: age-structured FoI
+  \(\bar I(t_c, a) = \sum_{a'} C_{a'a} I^{\text{eff}}_{a'}(t_c - 1) / N_a\)
+  using the POLYMOD Netherlands contact matrix, plus an overall-prevalence
+  version; person-days aggregated to cells.
+- `model.stan`: Poisson approximation to a Cox model,
+  \(\log\mu = \log\beta + \log\bar I + \log D + \gamma(t)V\), with a daily
+  random walk on \(\gamma(t)\) and \(\gamma(1) \sim N(-1, 1)\).
+- `run_model.R`: fits the age-structured and overall-prevalence versions.
+- `analysis_Poisson_and_Cox.R` (Hein Putter, 2026-06-19): frequentist
+  Poisson and Cox fits with piecewise-constant hazard ratios.
+
+**Check: parameter recovery with simulated outcomes** (`simulate_validate.R`,
+2026-06-17). Event counts were simulated from the model itself under a known
+\(\log\beta = -4.4\) and a rise-then-wane \(\gamma(t)\), keeping the real
+covariate structure, then refitted.
+
+```{r, fig.alt = "Workshop parameter-recovery check: posterior median and 90% interval of gamma(t) against the true simulated curve; recovery is good for about two weeks, then the estimate flattens."}
+fig("2026-06-17_workshop_recovery.png")
+```
+
+Results recorded in the workshop vignette:
+
+- \(\log\beta\) recovered accurately (true −4.4, posterior median −4.40).
+- \(\gamma(t)\) recovered well for about two weeks, then flattened with
+  rapidly widening uncertainty. This followed event sparsity in the
+  vaccinated group (events near zero by days 13–20), not a sampler failure.
+  Earlier sampler problems were fixed by a non-centred parameterisation
+  (`model_noncentered.stan`).
+- On the case-study data, VE rose to about 88% by day 15, then appeared to
+  plateau at 70–72% from day 45–90 (judged likely prior-driven), with an
+  early dip to about −22% at days 2–3 (plausibly a reporting-delay effect).
+
+**Notes added 2026-11-25.**
+
+- The vignette states \(\theta = 0.5\) (vaccinated cases half as infectious),
+  but `prepare_stan_data.R` used `theta <- 1` (vaccinated cases not
+  infectious at all).
+- The scripts hard-coded the study end (93 days in one place, 90 in another);
+  see [entry 6](#e06).
+- The case-study VE is unknown, so these checks could only test the model
+  against itself, not against a known truth. This motivated entry 2.
+
+---
+
+## 2. 2026-09-10 — HERMES extended with waning VE; first ground-truth datasets {#e02}
+
+**Why.** To validate the method against data where the true VE(t) is known,
+HERMES needed vaccine protection that changes with time since vaccination,
+and a scenario designed so that waning could in principle be detected.
+
+**Changes to HERMES** (fork `kylieainslie/ibm_hermes`; these changes were
+left uncommitted until 2026-11-25, commit `24fc257` on branch
+`waning-vaccine-effectiveness`):
+
+- `compute_time_varying_ve()` in `lib/ibm_core.R`: VE rises linearly from 0
+  to a peak over `ve_ramp_days`, then decays exponentially with half-life
+  `ve_half_life` towards `ve_floor`. Applied to susceptibility only, in both
+  `run_ibm()` and `rerun_ibm()`.
+- New defaults in `lib/ibm_parameters.R`, with their basis:
+
+| Parameter | Value | Basis |
+|---|---|---|
+| `vaccine_effectiveness` (peak) | 0.8 | High end of measured influenza VE; optimistic, which makes waning easier to see (Ferdinands et al. 2018) |
+| `ve_ramp_days` | 14 | About two weeks for protective antibodies; VE studies start the "fully vaccinated" window at day 15 |
+| `ve_half_life` | 45 days | Exponential fit to Ferdinands et al.'s A(H3N2) estimates gives about 46 days; consistent with Chung et al. 2024 |
+| `ve_floor` | 0.1 | Assumption; little data beyond 180 days |
+
+- Recalibrated, to be closer to seasonal influenza: `prob_hospital` from 0.3
+  to 0.0015 (calibrated by simulation to about 1.5% of symptomatic cases
+  hospitalised), and `disease_mortality_rate` from 0.01–0.7 to
+  0.00003–0.003 per day (verified by simulation at about 0.06% IFR under 60
+  and 0.5% over 60).
+- A check of other HERMES parameters against influenza literature found the
+  mean incubation period (about 5 days) is 2.5–3 times longer than published
+  estimates. Left unchanged.
+- **Side effect:** these are package-wide defaults, so every HERMES scenario
+  now has waning VE and lower hospitalisation and mortality unless the
+  script overrides them.
+
+**Scenario design** (`lib/ibm_waning_scenario.R`): 10 initial infections and
+20 days without vaccination, then 16 rounds of 10 days, each vaccinating 3%
+of the remaining eligible population (seed `rng_seed + round`).
+
+**Choice of `transmission_prob`.** The default (0.1) gives an epidemic that
+is over before most people are vaccinated. A sweep without vaccination
+(10,000 people, 180 days):
+
+| `transmission_prob` | Peak infectious | Peak day | Extinct by | Final attack rate |
+|---|---|---|---|---|
+| 0.035 | 1,603 | 41 | day 126 | 71.1% |
+| **0.02** | 335 | 88 | not by day 180 | 32.4% |
+| 0.015 | 46 | 63 | not by day 180 | 5.0% |
+| 0.012 | 15 | 4 | day 73 | 0.3% |
+| 0.01 | 14 | 6 | day 102 | 0.6% |
+
+With 0.035, vaccinated cases bunched in the first 45 days after vaccination
+(79/63/60/38/12/9/2 cases in the 0–7/7–14/14–30/30–45/45–60/60–90/90+ day
+ranges). With 0.02 they spread across the full range (28/19/25/18/19/40/44),
+which is what's needed to see waning. 0.02 was chosen.
+
+**Output.** Two scenarios, `waning` (`ve_floor = 0.1`) and `no_waning`
+(`ve_floor = 0.8`), each 10,000 people, committed to the workshop repo as
+`data/ve_test_scenarios/` (commit `9f0d72d`). The commit message reports a
+piecewise-Poisson check, run outside any repository, that recovered the true
+curve well in both. That check is not recorded anywhere and is superseded by
+[entry 7](#e07).
+
+**Notes added 2026-11-25.**
+
+- The committed script and the HERMES vignette described a population of
+  100,000 and output paths that did not match the data. The data were in fact
+  generated with 10,000 people (confirmed from the saved parameters).
+- The reported-case files cannot be reproduced; see [entry 4](#e04).
+
+---
+
+## 3. 2026-11-25 — Work consolidated into the surviver package {#e03}
+
+The work was spread across branches of two repositories (workshop `group-D`
+and HERMES), plus uncommitted changes. It was reorganised as:
+
+| What | Where |
+|---|---|
+| Estimation code, datasets, vignettes, this notebook | `surviver` R package (this repository), MIT licence |
+| HERMES waning-VE code | `kylieainslie/ibm_hermes`, branch `waning-vaccine-effectiveness` |
+| Workshop record (original scripts, vignettes) | `kylieainslie/lorentz_center_workshop`, branch `group-D`, left in place |
+
+The package's data scripts load HERMES from a local clone (`HERMES_PATH`) and
+record the HERMES commit in each dataset, so HERMES can keep changing without
+a pull request upstream. The workshop case-study data (200,000 people) is not
+included, as it belongs to the workshop organisers. Both Stan models are
+kept: `ve_noncentered.stan` (default) and `ve_centered.stan`.
+
+---
+
+## 4. 2026-11-25 — HERMES scenario made reproducible; data regenerated {#e04}
+
+**What was done** (HERMES commit `6c9ab73`). The scenario script was turned
+into `simulate_waning_scenario(ve_floor, ...)`, whose defaults match the
+September data, and `export_waning_scenario()`.
+
+**Check: does it reproduce the committed data?** Both scenarios were rerun
+and compared with `data/ve_test_scenarios/`:
+
+- Population, vaccination data and saved parameters: **identical**.
+- Reported cases: **different** (e.g. 1,588 vs 1,568 in the waning
+  scenario), and different again on a second run (1,582).
+
+**Cause.** `obtain_incidence_data()` calls `set.seed(delay_params$rng_seed)`,
+but `get_default_delay_parameters()` has no `rng_seed`, so it calls
+`set.seed(NULL)` and draws a fresh seed every run. Infections and
+vaccinations are reproducible; which cases are reported, and when, is not.
+
+**Fix.** The scenario function sets `delay_params$rng_seed <- params$rng_seed`.
+Two runs are now identical. The September reported-case files cannot be
+recovered, so the datasets were regenerated (`data-raw/ve_test_scenarios.R`)
+and the package versions are now the reference. They differ from the
+workshop copies only in the reported-case table.
+
+**Implication.** The same unseeded step probably affects every HERMES
+dataset, including the workshop case study. A one-line fix to
+`get_default_delay_parameters()` would solve it upstream.
+
+---
+
+## 5. 2026-11-25 — The simulated datasets {#e05}
+
+`ve_sim_waning` and `ve_sim_no_waning` are the reference test data for the
+method. Generated by `data-raw/ve_test_scenarios.R` with HERMES commit
+`6c9ab73`. Summaries below from `dev/checks/2026-11-25_00_simulated_data.R`.
+
+**Design.** Both use the same synthetic population and settings; only
+`ve_floor` differs.
+
+| Setting | Value |
+|---|---|
+| Population | 10,000 (0–4: 514; 5–17: 1,693; 18–49: 3,890; 50–64: 1,937; 65+: 1,966) |
+| Transmission | Household, school, workplace and community contacts; `transmission_prob = 0.02`; 10 initial infections |
+| Study length | 180 days |
+| Vaccination | None for days 1–20; then 16 rounds of 10 days, each vaccinating 3% of the remaining eligible population |
+| Natural history | 80% of infections symptomatic; infectious for a mean of 7 days |
+| Reporting | Symptomatic cases reported after a delay (Poisson, mean 2 days, maximum 6); 10% of symptomatic cases never reported |
+| VE | Acts on susceptibility only. Ramps from 0 to 0.8 over 14 days; then decays with half-life 45 days towards 0.1 (`waning`) or stays at 0.8 (`no_waning`) |
+| Random seed | 2026 (rounds use 2026 + round; reporting uses 2026) |
+
+```{r, fig.alt = "True VE by days since vaccination: both rise linearly to 0.8 at day 14; the waning curve then decays towards 0.1 while the no-waning curve stays at 0.8."}
+fig("2026-11-25_00_true_ve.png")
+```
+
+**Contents.**
+
+| | Waning | No waning |
+|---|---|---|
+| Vaccinated | 3,842 (38.4%) | 3,846 (38.5%) |
+| Reported cases | 1,566 (1,558 by day 180) | 1,559 |
+| Ever infected by day 180 (incl. unreported) | 2,185 | 2,182 |
+| Vaccinated people reported on or before their vaccination date | 326 | 372 |
+| Peak week of reported cases | from day 63 (117 cases) | from day 77 (163 cases) |
+
+```{r, fig.alt = "Weekly reported cases and cumulative vaccination coverage for each scenario; the no-waning epidemic peaks more sharply and ends earlier, while the waning epidemic continues at a lower level to day 180."}
+fig("2026-11-25_00_epidemic.png")
+```
+
+Cases among vaccinated people, reported after vaccination and by day 180, by
+days since vaccination (the information available to estimate VE(t)):
+
+| Days since vaccination | 0–6 | 7–13 | 14–29 | 30–44 | 45–59 | 60–89 | 90+ |
+|---|---|---|---|---|---|---|---|
+| Waning | 23 | 24 | 21 | 15 | 22 | 36 | 41 |
+| No waning | 27 | 24 | 25 | 14 | 14 | 11 | 3 |
+
+**Things to be aware of.**
+
+- The two runs are **not** paired realisations of one epidemic: their
+  epidemic curves differ from the first weeks, before VE could matter.
+- HERMES vaccinates people who have already been infected, hence the
+  326/372 vaccinated people reported before vaccination.
+- About 28% of infections are never reported (asymptomatic or missed). They
+  are immune but look susceptible in the data.
+- Reports can fall after day 180 (up to day 190 in the waning scenario).
+- `general_mortality_rate = NULL` switches on HERMES's background mortality,
+  separate from disease deaths. Deaths are not in the exported data.
+- The scenarios are stylised, not a realistic influenza season (see the
+  incubation-period note in [entry 2](#e02)).
+
+---
+
+## 6. 2026-11-25 — Analysis code ported into the package {#e06}
+
+The workshop scripts were rewritten as package functions (`ve_population()`,
+`daily_incidence()`, `daily_prevalence()`, `counting_process()`,
+`expand_person_days()`, `force_of_infection()`, `make_stan_data()`,
+`fit_ve()`, `extract_ve()`, `plot_ve()`, `true_ve()`, `simulate_counts()`),
+with unit tests. Behaviour that differs from the workshop scripts:
+
+| Change | Workshop scripts | Package | Why |
+|---|---|---|---|
+| Study end | Hard-coded 93 and 90 days | Taken from the data; cases reported later are censored | The simulated data run to 180 days and would have been silently cut |
+| Infectious period | 8 days when `duration_infection = 7` | 7 days | Off-by-one in the original sequence |
+| `theta` default | 1 (vaccinated cases not infectious) | 0 (as infectious as unvaccinated) | Matches HERMES, where VE acts on susceptibility only. The case-study value is still to be decided |
+| Column naming | Columns renamed by position | Renamed by name | Positional renames break silently |
+| Never vaccinated | `vax_status` could be `NA` | 0 | — |
+| Speed | Nested loops | Vectorised; person-days for 10,000 people in about 1 s | — |
+
+The POLYMOD matrix (`polymod_nl`) was checked to be identical to the
+workshop's `contact_matrix_NL.rds`.
+
+---
+
+## 7. 2026-11-25 — Recovery of VE(t) on simulated data {#e07}
 
 **Question.** Does `fit_ve()` (non-centred random-walk model, default
 settings) recover the true VE(t) in the two HERMES scenarios, and can it tell
 waning from no waning?
 
-**Data.** `ve_sim_waning` and `ve_sim_no_waning` (10,000 people, 180 days,
-16 vaccination rounds; HERMES commit `6c9ab73`). True VE ramps linearly from
-0 to 0.8 over 14 days, then either decays (half-life 45 days, floor 0.1) or
-stays at 0.8.
+**Data.** `ve_sim_waning` and `ve_sim_no_waning` ([entry 5](#e05)).
 
 **Method.** Full population, age-structured FoI from `polymod_nl` with
 `theta = 0`, infectious period 7 days starting 2 days before reporting, lag 1
@@ -89,35 +373,37 @@ fig("2026-11-25_01_recovery.png")
 **Observations.**
 
 1. The two scenarios are clearly distinguished: a rise then decline in the
-   waning scenario, a plateau near 0.8 in the no-waning scenario.
+   waning scenario, a plateau near 0.8 in the no-waning scenario. Unlike the
+   workshop check ([entry 1](#e01)), the curve is informed by data well
+   beyond two weeks, because these scenarios were designed to have
+   vaccinated cases at long times since vaccination.
 2. The estimate lags the truth by about a week. Shifting the true curve
    right minimises the mean absolute error (days 1–120) at 6 days (waning)
-   and 7–8 days (no waning).
-   "Days since vaccination" is measured to the reporting day, while
-   protection acts at infection, roughly 5 days (incubation) plus 2 days
-   (reporting delay) earlier.
+   and 7–8 days (no waning). "Days since vaccination" is measured to the
+   reporting day, while protection acts at infection, roughly 5 days
+   (incubation) plus 2 days (reporting delay) earlier.
 3. In the waning scenario the estimate falls below the truth after about
    day 90 (to around 0 against a true 0.2), with wide intervals that still
    contain the truth.
 
 **Conclusion.** The method works on this data. The lag is expected and will
 be handled by the planned extension for delays. The late underestimate needs
-explaining (entries #2 and #3).
+explaining (entries [8](#e08) and [9](#e09)).
 
 ---
 
-## 2026-11-25 — #2: Do unreported infections in the risk set cause the late drop? {#e02}
+## 8. 2026-11-25 — Do unreported infections in the risk set cause the late drop? {#e08}
 
 **Question.** About 28% of HERMES infections are never reported (20%
 asymptomatic, plus 10% of symptomatic cases missed). These people are immune
 but stay "at risk" in the data, mostly in the unvaccinated group. Does this
-explain the late underestimate in #1?
+explain the late underestimate in [entry 7](#e07)?
 
 **Method.** Regenerate both scenarios with HERMES to recover every person's
 true `time_of_infection` (the regenerated runs were checked to be identical
-to the packaged data). Refit the #1 model twice per scenario:
+to the packaged data). Refit the entry 7 model twice per scenario:
 
-- **reported only**: as in #1;
+- **reported only**: as in entry 7;
 - **true risk set**: people infected but never reported are censored at their
   true infection time.
 
@@ -158,7 +444,7 @@ VE(t).
 
 ---
 
-## 2026-11-25 — #3: Is calendar time leaking into time since vaccination? {#e03}
+## 9. 2026-11-25 — Is calendar time leaking into time since vaccination? {#e09}
 
 **Question.** Long times since vaccination are only observed late in the
 epidemic (you must have been vaccinated early). The model has one
@@ -222,3 +508,17 @@ fig("2026-11-25_03_calendar_time.png")
 underestimate. Next: add calendar-time flexibility to the Stan model, then
 judge any remaining bias, and the need for frailty, with replicate
 simulations.
+
+---
+
+## References
+
+- Chung H, et al. (2024) Measuring waning protection from seasonal influenza
+  vaccination during nine influenza seasons, Ontario, Canada. *Euro
+  Surveill* 29(8):2300239.
+- Ferdinands JM, et al. (2018) Duration of influenza vaccine effectiveness: a
+  systematic review, meta-analysis, and meta-regression of test-negative
+  design case-control studies. *J Infect Dis* 217(5):731–741. *(Author
+  attribution to be verified; possibly Young et al.)*
+- Mossong J, et al. (2008) Social contacts and mixing patterns relevant to
+  the spread of infectious diseases. *PLoS Med* 5(3):e74.
