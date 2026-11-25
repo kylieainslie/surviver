@@ -28,7 +28,7 @@ The method was developed by Group D at the Lorentz Center workshop
 2026).
 
 > **Status: experimental.** The method is under active development and
-> validation. See the [lab notebook](vignettes/articles/lab-notebook.Rmd) for
+> validation. See the [lab notebook](https://kylieainslie.github.io/surviver/articles/lab-notebook.html) for
 > what has been checked so far and the known open issues.
 
 ## Installation

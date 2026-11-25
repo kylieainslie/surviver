@@ -30,3 +30,6 @@ Imports:
     withr
 Additional_repositories: https://stan-dev.r-universe.dev
 Config/Needs/website: rmarkdown
+URL: https://kylieainslie.github.io/surviver/,
+    https://github.com/kylieainslie/surviver
+BugReports: https://github.com/kylieainslie/surviver/issues

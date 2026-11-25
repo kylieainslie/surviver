@@ -1,0 +1,61 @@
+url: https://kylieainslie.github.io/surviver/
+
+template:
+  bootstrap: 5
+  bootswatch: flatly
+
+navbar:
+  structure:
+    left: [intro, reference, articles, news]
+    right: [search, github]
+  components:
+    articles:
+      text: Articles
+      menu:
+        - text: Lab notebook
+          href: articles/lab-notebook.html
+
+reference:
+  - title: Prepare data
+    desc: Build person-level, daily and counting-process data from vaccination and case records.
+    contents:
+      - ve_population
+      - sample_cohort
+      - add_age_group
+      - default_age_breaks
+      - daily_incidence
+      - counting_process
+      - expand_person_days
+  - title: Exposure
+    desc: Daily infectious pressure (force of infection) by age group.
+    contents:
+      - daily_prevalence
+      - age_group_sizes
+      - force_of_infection
+      - contact_matrix_hermes
+  - title: Fit the VE model
+    desc: Poisson approximation to a Cox model with a random walk on the log hazard ratio over days since vaccination.
+    contents:
+      - make_stan_data
+      - ve_stan_file
+      - fit_ve
+      - extract_ve
+      - plot_ve
+  - title: Validation
+    desc: Helpers for checking the method against known truth.
+    contents:
+      - true_ve
+      - simulate_counts
+  - title: Data
+    contents:
+      - ve_sim
+      - polymod_nl
+  - title: internal
+    contents:
+      - surviver-package
+
+articles:
+  - title: Development
+    navbar: ~
+    contents:
+      - articles/lab-notebook
