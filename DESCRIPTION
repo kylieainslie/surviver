@@ -11,6 +11,9 @@ Encoding: UTF-8
 Roxygen: list(markdown = TRUE)
 RoxygenNote: 8.0.0
 Suggests: 
+    cmdstanr,
+    ggplot2,
+    posterior,
     socialmixr,
     testthat (>= 3.0.0)
 Config/testthat/edition: 3
@@ -20,6 +23,9 @@ LazyData: true
 Imports: 
     dplyr,
     rlang,
+    stats,
     survival,
     tidyr,
+    tools,
     withr
+Additional_repositories: https://stan-dev.r-universe.dev
