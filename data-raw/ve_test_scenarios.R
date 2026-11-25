@@ -5,13 +5,13 @@
 ##   https://github.com/kylieainslie/ibm_hermes  (branch waning-vaccine-effectiveness)
 ##
 ## Requires a local clone of ibm_hermes. Point HERMES_PATH at it if it is not
-## at ~/Downloads/ibm_hermes, e.g. in ~/.Renviron:
+## at ~/Documents/ibm_hermes, e.g. in ~/.Renviron:
 ##   HERMES_PATH=/path/to/ibm_hermes
 ##
 ## The HERMES commit used is stored in each dataset (`hermes_commit`).
 ## Runtime: about 20 seconds per scenario.
 
-hermes_path <- normalizePath(Sys.getenv("HERMES_PATH", "~/Downloads/ibm_hermes"),
+hermes_path <- normalizePath(Sys.getenv("HERMES_PATH", "~/Documents/ibm_hermes"),
                              mustWork = TRUE)
 
 hermes_commit <- system2("git", c("-C", shQuote(hermes_path), "rev-parse", "HEAD"),

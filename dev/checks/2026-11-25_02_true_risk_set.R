@@ -7,7 +7,7 @@ devtools::load_all(quiet = TRUE)
 out_dir <- Sys.getenv("SURVIVER_CHECKS_OUT", file.path(tempdir(), "surviver-checks"))
 dir.create(out_dir, showWarnings = FALSE, recursive = TRUE)
 
-hermes_path <- normalizePath(Sys.getenv("HERMES_PATH", "~/Downloads/ibm_hermes"), mustWork = TRUE)
+hermes_path <- normalizePath(Sys.getenv("HERMES_PATH", "~/Documents/ibm_hermes"), mustWork = TRUE)
 hermes <- new.env()
 withr::with_dir(hermes_path, {
   sys.source("lib/ibm_core.R", envir = hermes)
