@@ -99,9 +99,12 @@ to <code>$SURVIVER_CHECKS_OUT</code> (default: a temporary folder).</p>
 </tr>
 <tr class="even">
 <td>Why is the estimated curve about a week behind the truth?</td>
-<td>Reporting time vs infection time. <strong>Deferred</strong> to the
-planned delay extension</td>
-<td><a href="#e07">7</a></td>
+<td>Partly reporting time vs infection time (<strong>deferred</strong>
+to the planned delay extension). Much of the underestimate at days 7–29
+is due to people infected before vaccination, which censoring fixes</td>
+<td>
+<a href="#e07">7</a>, <a href="#e12">12</a>
+</td>
 </tr>
 <tr class="odd">
 <td>Why is late (90+ day) VE underestimated in the waning scenario?</td>
@@ -131,12 +134,22 @@ their precision are unchanged</td>
 <tr class="odd">
 <td>Does HERMES vaccinate people who were already infected, and does it
 matter?</td>
-<td>Yes: about 12% of vaccinations go to recovered people, whose
-immunity is reset. They produce 7–13% of cases among vaccinated people.
-<strong>Open</strong>: fix in HERMES or handle in the analysis</td>
-<td><a href="#e11">11</a></td>
+<td>Yes: about 12% of vaccinations go to recovered people, and 1% to
+infectious people. <strong>Decided 2026-11-26</strong>: keep HERMES as
+is (realistic) and censor in the analysis</td>
+<td>
+<a href="#e11">11</a>, <a href="#e12">12</a>
+</td>
 </tr>
 <tr class="even">
+<td>How should people infected before vaccination be censored?</td>
+<td>They are 19% (waning) and 31% (no waning) of cases among vaccinated
+people, and cause most of the underestimate at days 7–29. Censoring
+anyone reported within 7 days of vaccination removes most of that bias
+using observed dates only. VE for days 1–7 is then not estimable</td>
+<td><a href="#e12">12</a></td>
+</tr>
+<tr class="odd">
 <td>When should the FoI help?</td>
 <td>
 <strong>Open</strong>: probably only when exposure differs between
@@ -144,19 +157,19 @@ vaccinated and unvaccinated people (e.g. vaccination targeted by age).
 Needs a scenario that tests this</td>
 <td><a href="#e10">10</a></td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td>Is the remaining late bias real or chance?</td>
 <td>
 <strong>Open</strong>: needs replicate simulations</td>
 <td>—</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td>Is a frailty term needed?</td>
 <td>
 <strong>Open</strong>: decide after replicate simulations</td>
 <td>—</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td>What value of <code>theta</code> (infectiousness of vaccinated
 cases) should the case-study analysis use?</td>
 <td>
@@ -166,7 +179,7 @@ the package default is 0</td>
 <a href="#e01">1</a>, <a href="#e06">6</a>
 </td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td>Should the HERMES reporting-seed bug be reported upstream?</td>
 <td>
 <strong>Open</strong>: affects reproducibility of all HERMES
@@ -182,10 +195,13 @@ case-study data</td>
 <li>Let transmission vary over calendar time in the Stan model (e.g. a
 random walk on <code>log_beta</code> by day or week), keeping the FoI
 offset.</li>
-<li>Decide how to handle HERMES vaccinating recovered people (entry 11).
-If HERMES is changed, regenerate the datasets before step 3.</li>
+<li>Use
+<code>censor_at_vaccination = reported_soon_after_vaccination(pop, 7)</code>
+in the standard analysis from now on (entry 12), and report VE from day
+7 after vaccination.</li>
 <li>Run 20–50 replicate HERMES simulations per scenario to measure bias
-and interval coverage, rather than judging from one realisation.</li>
+and interval coverage, rather than judging from one realisation. Include
+the choice of censoring window.</li>
 <li>Simulate a scenario where vaccination is targeted (e.g. by age,
 oldest first), so vaccinated and unvaccinated people face different
 exposure, and test whether the FoI then improves bias or precision.</li>
@@ -258,6 +274,11 @@ POLYMOD</a></td>
 <td>2026-11-26</td>
 <td><a href="#e11">11. HERMES vaccinates infected and recovered
 people</a></td>
+</tr>
+<tr class="even">
+<td>2026-11-26</td>
+<td><a href="#e12">12. Censoring people infected before
+vaccination</a></td>
 </tr>
 </tbody>
 </table>
@@ -1577,6 +1598,318 @@ still recording <code>time_of_vaccination</code>), and optionally
 exclude <code>I</code>; or (b) keep HERMES as is and censor people at a
 reported infection before vaccination. Option (a) gives cleaner ground
 truth but needs the datasets regenerating. Not yet decided.</p>
+<p><em>Note added 2026-11-26:</em> decided on option (b), because
+infectious and recovered people are vaccinated in real campaigns too.
+See <a href="#e12">entry 12</a>.</p>
+<hr>
+</div>
+<div class="section level2">
+<h2 id="e12">12. 2026-11-26 — Censoring people infected before vaccination<a class="anchor" aria-label="anchor" href="#e12"></a>
+</h2>
+<p><strong>Decision.</strong> HERMES stays as it is (entry 11): real
+campaigns also vaccinate people who are infectious or already recovered,
+so the analysis has to deal with them. People reported <em>before</em>
+their vaccination date were already handled, because
+<code><a href="../reference/counting_process.html">counting_process()</a></code> ends follow-up at the report. The
+problem is people infected before vaccination but reported
+<em>after</em> it, who are counted as vaccine failures.</p>
+<p><strong>What was added.</strong></p>
+<ul>
+<li>
+<code>counting_process(censor_at_vaccination = ids)</code>: the
+listed people’s follow-up ends at their vaccination date, unvaccinated
+and without an event.</li>
+<li>
+<code>reported_soon_after_vaccination(pop, window)</code>: an
+observable rule, listing vaccinated people reported 1 to
+<code>window</code> days after vaccination. An infection that happened
+before vaccination must be reported within roughly incubation (mean
+about 5 days) plus reporting delay (0–6 days).</li>
+</ul>
+<p><strong>Question.</strong> How many cases among vaccinated people
+were infected before vaccination, how much do they bias VE(t), and how
+well does an observable window rule work compared with knowing the
+truth?</p>
+<p><strong>Method.</strong> For both scenarios, four versions of the
+entry 7 analysis:</p>
+<ul>
+<li>
+<strong>none</strong>: no censoring (as before);</li>
+<li>
+<strong>oracle</strong>: censor people who were infectious or
+recovered when vaccinated (true state from the HERMES snapshots, as in
+entry 11);</li>
+<li>
+<strong>window 7</strong> and <strong>window 14</strong>: censor
+anyone reported within 7 or 14 days after vaccination.</li>
+</ul>
+<p>Each was fitted with the Stan model and with the per-day-baseline GLM
+(model B from entry 9).</p>
+<p><strong>Script.</strong>
+<code>dev/checks/2026-11-26_06_censor_prior_infection.R</code> (about 10
+minutes; needs a local <code>ibm_hermes</code> clone).</p>
+<p><strong>Results.</strong></p>
+<p><em>How many, and who each rule catches</em> (among vaccinated people
+reported after vaccination and by day 180):</p>
+<table class="table">
+<colgroup>
+<col width="12%">
+<col width="12%">
+<col width="12%">
+<col width="12%">
+<col width="12%">
+<col width="12%">
+<col width="12%">
+<col width="12%">
+</colgroup>
+<thead><tr class="header">
+<th>Scenario</th>
+<th>Cases among vaccinated</th>
+<th>Infected before vaccination</th>
+<th>Rule</th>
+<th>Censored</th>
+<th>… truly infected before</th>
+<th>… genuine post-vaccination cases</th>
+<th>Infected-before missed</th>
+</tr></thead>
+<tbody>
+<tr class="odd">
+<td>Waning</td>
+<td>182</td>
+<td>34 (19%)</td>
+<td>oracle</td>
+<td>34</td>
+<td>34</td>
+<td>0</td>
+<td>0</td>
+</tr>
+<tr class="even">
+<td></td>
+<td></td>
+<td></td>
+<td>window 7</td>
+<td>25</td>
+<td>21</td>
+<td>4</td>
+<td>13</td>
+</tr>
+<tr class="odd">
+<td></td>
+<td></td>
+<td></td>
+<td>window 14</td>
+<td>49</td>
+<td>24</td>
+<td>25</td>
+<td>10</td>
+</tr>
+<tr class="even">
+<td>No waning</td>
+<td>118</td>
+<td>36 (31%)</td>
+<td>oracle</td>
+<td>36</td>
+<td>36</td>
+<td>0</td>
+<td>0</td>
+</tr>
+<tr class="odd">
+<td></td>
+<td></td>
+<td></td>
+<td>window 7</td>
+<td>31</td>
+<td>25</td>
+<td>6</td>
+<td>11</td>
+</tr>
+<tr class="even">
+<td></td>
+<td></td>
+<td></td>
+<td>window 14</td>
+<td>53</td>
+<td>33</td>
+<td>20</td>
+<td>3</td>
+</tr>
+</tbody>
+</table>
+<p><em>Stan: mean error (posterior median − true VE) by days since
+vaccination:</em></p>
+<table class="table">
+<colgroup>
+<col width="9%">
+<col width="9%">
+<col width="9%">
+<col width="9%">
+<col width="9%">
+<col width="9%">
+<col width="9%">
+<col width="9%">
+<col width="9%">
+<col width="9%">
+<col width="9%">
+</colgroup>
+<thead><tr class="header">
+<th>Scenario</th>
+<th>Rule</th>
+<th>1–6</th>
+<th>7–13</th>
+<th>14–29</th>
+<th>30–44</th>
+<th>45–59</th>
+<th>60–89</th>
+<th>90–119</th>
+<th>120+</th>
+<th>Coverage</th>
+</tr></thead>
+<tbody>
+<tr class="odd">
+<td>Waning</td>
+<td>none</td>
+<td>+0.02</td>
+<td>−0.25</td>
+<td>−0.11</td>
+<td>+0.09</td>
+<td>+0.08</td>
+<td>+0.05</td>
+<td>−0.14</td>
+<td>−0.28</td>
+<td>0.93</td>
+</tr>
+<tr class="even">
+<td></td>
+<td>oracle</td>
+<td>+0.47</td>
+<td>−0.00</td>
+<td>−0.07</td>
+<td>+0.10</td>
+<td>+0.11</td>
+<td>+0.08</td>
+<td>−0.10</td>
+<td>−0.23</td>
+<td>0.88</td>
+</tr>
+<tr class="odd">
+<td></td>
+<td>window 7</td>
+<td>+0.55</td>
+<td>−0.02</td>
+<td>−0.07</td>
+<td>+0.10</td>
+<td>+0.08</td>
+<td>+0.05</td>
+<td>−0.14</td>
+<td>−0.27</td>
+<td>0.92</td>
+</tr>
+<tr class="even">
+<td></td>
+<td>window 14</td>
+<td>+0.70</td>
+<td>+0.31</td>
+<td>+0.05</td>
+<td>+0.12</td>
+<td>+0.09</td>
+<td>+0.05</td>
+<td>−0.14</td>
+<td>−0.27</td>
+<td>0.91</td>
+</tr>
+<tr class="odd">
+<td>No waning</td>
+<td>none</td>
+<td>−0.09</td>
+<td>−0.30</td>
+<td>−0.16</td>
+<td>−0.06</td>
+<td>−0.06</td>
+<td>+0.02</td>
+<td>+0.02</td>
+<td>+0.06</td>
+<td>0.93</td>
+</tr>
+<tr class="even">
+<td></td>
+<td>oracle</td>
+<td>+0.53</td>
+<td>+0.07</td>
+<td>−0.09</td>
+<td>−0.07</td>
+<td>−0.06</td>
+<td>−0.00</td>
+<td>−0.01</td>
+<td>+0.02</td>
+<td>0.89</td>
+</tr>
+<tr class="odd">
+<td></td>
+<td>window 7</td>
+<td>+0.63</td>
+<td>−0.05</td>
+<td>−0.13</td>
+<td>−0.05</td>
+<td>−0.06</td>
+<td>+0.03</td>
+<td>+0.02</td>
+<td>+0.09</td>
+<td>0.89</td>
+</tr>
+<tr class="even">
+<td></td>
+<td>window 14</td>
+<td>+0.71</td>
+<td>+0.31</td>
+<td>−0.03</td>
+<td>−0.05</td>
+<td>−0.05</td>
+<td>+0.02</td>
+<td>+0.02</td>
+<td>+0.08</td>
+<td>0.93</td>
+</tr>
+</tbody>
+</table>
+<p>The per-day-baseline GLM agreed. After oracle censoring only 3
+vaccinated cases remain at days 1–6 in each scenario; window 7 leaves
+none there, and window 14 none before day 14.</p>
+<p><img src="figures/2026-11-26_06_censor_prior_infection.png" class="r-plt" alt="Posterior median VE over the first 60 days since vaccination under no censoring, oracle censoring, and 7- and 14-day window rules; censoring removes the early underestimate from about day 7, while the first week becomes unreliable."></p>
+<p><strong>Observations.</strong></p>
+<ol style="list-style-type: decimal">
+<li>People infected before vaccination are a large share of cases among
+vaccinated people (19% and 31%), far more than the recovered people
+alone counted in entry 11 (12 and 15 cases): most were infectious when
+vaccinated.</li>
+<li>They cause most of the underestimate at days 7–29 that entry 7
+attributed to the reporting lag. With oracle censoring, the error at
+days 7–13 falls from −0.25 to 0.00 (waning) and from −0.30 to +0.07 (no
+waning).</li>
+<li>
+<strong>Days 1–6 become unusable after censoring.</strong> Because
+time since vaccination is measured to the report date, someone infected
+after vaccination can hardly be reported within a few days. Once prior
+infections are removed, the first week has almost no cases and VE looks
+close to 1. In this period the curve reflects the prior on the first
+day, not data.</li>
+<li>
+<strong>Window 7</strong> captures 62–69% of prior infections,
+wrongly censors only 4–6 genuine cases, and matches the oracle from day
+7 onward. <strong>Window 14</strong> catches more prior infections but
+throws away 20–25 genuine cases, empties days 7–13, and overstates VE
+there (+0.31).</li>
+<li>No rule changes the late (90+ day) underestimate, so prior infection
+is not its cause (consistent with entries 8–9).</li>
+</ol>
+<p><strong>Conclusion.</strong> Use
+<code>reported_soon_after_vaccination(pop, 7)</code> with
+<code>counting_process(censor_at_vaccination = )</code> in the standard
+analysis, and report VE from day 7 after vaccination. The best window
+depends on the incubation and reporting-delay distributions, which in
+real data would come from the literature or surveillance. Revisit once
+the method handles delays (estimating time since vaccination at
+infection rather than at report), which should make the first week
+estimable again.</p>
 <hr>
 </div>
 <div class="section level2">

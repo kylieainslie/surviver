@@ -56,6 +56,7 @@ after <code>study_end</code> are censored at <code>study_end</code>.</p>
     <div class="sourceCode"><pre class="sourceCode r"><code><span><span class="fu">counting_process</span><span class="op">(</span></span>
 <span>  <span class="va">cohort</span>,</span>
 <span>  study_end <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/attr.html" class="external-link">attr</a></span><span class="op">(</span><span class="va">cohort</span>, <span class="st">"study_end"</span><span class="op">)</span>,</span>
+<span>  censor_at_vaccination <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  age_breaks <span class="op">=</span> <span class="va">default_age_breaks</span>,</span>
 <span>  age_labels <span class="op">=</span> <span class="va">default_age_labels</span></span>
 <span><span class="op">)</span></span></code></pre></div>
@@ -74,6 +75,12 @@ after <code>study_end</code> are censored at <code>study_end</code>.</p>
 <dd><p>Last day of follow-up.</p></dd>
 
 
+<dt id="arg-censor-at-vaccination">censor_at_vaccination<a class="anchor" aria-label="anchor" href="#arg-censor-at-vaccination"></a></dt>
+<dd><p>Optional vector of <code>ind_id</code>s to censor at
+their vaccination date. Ignored for people who are unvaccinated or whose
+follow-up ends before vaccination.</p></dd>
+
+
 <dt id="arg-age-breaks-age-labels">age_breaks, age_labels<a class="anchor" aria-label="anchor" href="#arg-age-breaks-age-labels"></a></dt>
 <dd><p>Passed to <code><a href="https://rdrr.io/r/base/cut.html" class="external-link">cut()</a></code> (left-closed intervals).</p></dd>
 
@@ -83,6 +90,17 @@ after <code>study_end</code> are censored at <code>study_end</code>.</p>
     <p>A data frame from <code><a href="https://rdrr.io/pkg/survival/man/tmerge.html" class="external-link">survival::tmerge()</a></code> with <code>ind_id</code>, <code>age</code>,
 <code>age_group</code>, <code>sex</code>, <code>time_of_vaccination</code>, <code>tstart</code>, <code>tstop</code>, <code>event</code>,
 <code>vax_status</code>.</p>
+    </div>
+    <div class="section level2">
+    <h2 id="details">Details<a class="anchor" aria-label="anchor" href="#details"></a></h2>
+    <p>People reported before their vaccination date are already handled: their
+follow-up ends at the report, so they never count as vaccinated. People
+infected before vaccination but reported after it would otherwise count
+as vaccinated cases. <code>censor_at_vaccination</code> lets these be censored at
+their vaccination date instead (follow-up ends unvaccinated, no event).
+Which people to censor is the analyst's choice; see
+<code><a href="reported_soon_after_vaccination.html">reported_soon_after_vaccination()</a></code> for a rule based only on observed
+dates.</p>
     </div>
 
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>

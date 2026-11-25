@@ -94,14 +94,18 @@
 <span><span class="va">prev</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/daily_prevalence.html">daily_prevalence</a></span><span class="op">(</span><span class="va">inc</span>, duration_infection <span class="op">=</span> <span class="fl">7</span>, reporting_delay <span class="op">=</span> <span class="fl">2</span><span class="op">)</span></span>
 <span><span class="va">foi</span>  <span class="op">&lt;-</span> <span class="fu"><a href="reference/force_of_infection.html">force_of_infection</a></span><span class="op">(</span><span class="va">prev</span>, <span class="fu"><a href="reference/age_group_sizes.html">age_group_sizes</a></span><span class="op">(</span><span class="va">pop</span><span class="op">)</span>, contact_matrix <span class="op">=</span> <span class="va">polymod_nl</span><span class="op">)</span></span>
 <span></span>
-<span><span class="co"># person-days split at vaccination, aggregated for Stan</span></span>
-<span><span class="va">pd</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/expand_person_days.html">expand_person_days</a></span><span class="op">(</span><span class="fu"><a href="reference/counting_process.html">counting_process</a></span><span class="op">(</span><span class="va">pop</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="co"># person-days split at vaccination, aggregated for Stan. People reported</span></span>
+<span><span class="co"># within 7 days of vaccination are censored at vaccination, since they were</span></span>
+<span><span class="co"># probably infected before it</span></span>
+<span><span class="va">early</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/reported_soon_after_vaccination.html">reported_soon_after_vaccination</a></span><span class="op">(</span><span class="va">pop</span>, window <span class="op">=</span> <span class="fl">7</span><span class="op">)</span></span>
+<span><span class="va">pd</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/expand_person_days.html">expand_person_days</a></span><span class="op">(</span><span class="fu"><a href="reference/counting_process.html">counting_process</a></span><span class="op">(</span><span class="va">pop</span>, censor_at_vaccination <span class="op">=</span> <span class="va">early</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="va">sd</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/make_stan_data.html">make_stan_data</a></span><span class="op">(</span><span class="va">pd</span>, <span class="va">foi</span><span class="op">)</span></span>
 <span></span>
-<span><span class="co"># fit and plot against the true curve</span></span>
+<span><span class="co"># fit and plot against the true curve (VE is not estimable for the</span></span>
+<span><span class="co"># first 7 days after vaccination once early cases are censored)</span></span>
 <span><span class="va">fit</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/fit_ve.html">fit_ve</a></span><span class="op">(</span><span class="va">sd</span>, seed <span class="op">=</span> <span class="fl">42</span><span class="op">)</span></span>
 <span><span class="va">ve</span>  <span class="op">&lt;-</span> <span class="fu"><a href="reference/extract_ve.html">extract_ve</a></span><span class="op">(</span><span class="va">fit</span><span class="op">)</span></span>
-<span><span class="fu"><a href="reference/plot_ve.html">plot_ve</a></span><span class="op">(</span><span class="va">ve</span>, truth <span class="op">=</span> <span class="va">ve_sim_waning</span><span class="op">$</span><span class="va">params</span><span class="op">)</span></span></code></pre></div>
+<span><span class="fu"><a href="reference/plot_ve.html">plot_ve</a></span><span class="op">(</span><span class="va">ve</span><span class="op">[</span><span class="va">ve</span><span class="op">$</span><span class="va">days_since_vax</span> <span class="op">&gt;</span> <span class="fl">7</span>, <span class="op">]</span>, truth <span class="op">=</span> <span class="va">ve_sim_waning</span><span class="op">$</span><span class="va">params</span><span class="op">)</span></span></code></pre></div>
 <p>To use your own data, pass <code><a href="reference/ve_population.html">ve_population()</a></code> a folder containing <code>demographic_data.rds</code>, <code>vaccination_data.rds</code> and <code>incidence_data_reduced.rds</code>, or a list with <code>demographic</code>, <code>vaccination</code> and <code>incidence</code> data frames (see <code><a href="reference/ve_population.html">?ve_population</a></code>).</p>
 </div>
 <div class="section level2">
@@ -132,7 +136,7 @@
 <tr>
 <td>Survival data</td>
 <td>
-<code><a href="reference/counting_process.html">counting_process()</a></code>, <code><a href="reference/expand_person_days.html">expand_person_days()</a></code>, <code><a href="reference/make_stan_data.html">make_stan_data()</a></code>
+<code><a href="reference/counting_process.html">counting_process()</a></code>, <code><a href="reference/reported_soon_after_vaccination.html">reported_soon_after_vaccination()</a></code>, <code><a href="reference/expand_person_days.html">expand_person_days()</a></code>, <code><a href="reference/make_stan_data.html">make_stan_data()</a></code>
 </td>
 </tr>
 <tr>

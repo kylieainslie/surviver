@@ -17,12 +17,13 @@ scripts from the package root; outputs go to `$SURVIVER_CHECKS_OUT`
 | Question | Status | Entry |
 |----|----|----|
 | Does [`fit_ve()`](https://kylieainslie.github.io/surviver/reference/fit_ve.md) recover a known VE(t)? | Yes, broadly; 92–93% of days inside the 90% CrI | [7](#e07) |
-| Why is the estimated curve about a week behind the truth? | Reporting time vs infection time. **Deferred** to the planned delay extension | [7](#e07) |
+| Why is the estimated curve about a week behind the truth? | Partly reporting time vs infection time (**deferred** to the planned delay extension). Much of the underestimate at days 7–29 is due to people infected before vaccination, which censoring fixes | [7](#e07), [12](#e12) |
 | Why is late (90+ day) VE underestimated in the waning scenario? | About half explained by calendar time leaking into time since vaccination. Remainder within noise | [8](#e08), [9](#e09) |
 | Do unreported (immune) infections in the risk set bias VE? | No detectable effect | [8](#e08) |
 | Does the FoI offset improve precision? | Not in this simulation once calendar time is adjusted for | [9](#e09) |
 | Does using HERMES’s true contact structure instead of POLYMOD change VE(t)? | No. It describes who gets infected much better, but VE estimates and their precision are unchanged | [10](#e10) |
-| Does HERMES vaccinate people who were already infected, and does it matter? | Yes: about 12% of vaccinations go to recovered people, whose immunity is reset. They produce 7–13% of cases among vaccinated people. **Open**: fix in HERMES or handle in the analysis | [11](#e11) |
+| Does HERMES vaccinate people who were already infected, and does it matter? | Yes: about 12% of vaccinations go to recovered people, and 1% to infectious people. **Decided 2026-11-26**: keep HERMES as is (realistic) and censor in the analysis | [11](#e11), [12](#e12) |
+| How should people infected before vaccination be censored? | They are 19% (waning) and 31% (no waning) of cases among vaccinated people, and cause most of the underestimate at days 7–29. Censoring anyone reported within 7 days of vaccination removes most of that bias using observed dates only. VE for days 1–7 is then not estimable | [12](#e12) |
 | When should the FoI help? | **Open**: probably only when exposure differs between vaccinated and unvaccinated people (e.g. vaccination targeted by age). Needs a scenario that tests this | [10](#e10) |
 | Is the remaining late bias real or chance? | **Open**: needs replicate simulations | — |
 | Is a frailty term needed? | **Open**: decide after replicate simulations | — |
@@ -33,10 +34,13 @@ scripts from the package root; outputs go to `$SURVIVER_CHECKS_OUT`
 
 1.  Let transmission vary over calendar time in the Stan model (e.g. a
     random walk on `log_beta` by day or week), keeping the FoI offset.
-2.  Decide how to handle HERMES vaccinating recovered people (entry 11).
-    If HERMES is changed, regenerate the datasets before step 3.
+2.  Use
+    `censor_at_vaccination = reported_soon_after_vaccination(pop, 7)` in
+    the standard analysis from now on (entry 12), and report VE from day
+    7 after vaccination.
 3.  Run 20–50 replicate HERMES simulations per scenario to measure bias
     and interval coverage, rather than judging from one realisation.
+    Include the choice of censoring window.
 4.  Simulate a scenario where vaccination is targeted (e.g. by age,
     oldest first), so vaccinated and unvaccinated people face different
     exposure, and test whether the FoI then improves bias or precision.
@@ -63,6 +67,7 @@ how to do each of these.
 | 2026-11-25 | [9. Calendar time and time since vaccination](#e09) |
 | 2026-11-25 | [10. FoI from the HERMES contact structure instead of POLYMOD](#e10) |
 | 2026-11-26 | [11. HERMES vaccinates infected and recovered people](#e11) |
+| 2026-11-26 | [12. Censoring people infected before vaccination](#e12) |
 
 ------------------------------------------------------------------------
 
@@ -738,6 +743,120 @@ method. Options: (a) change HERMES so vaccination does not override `R`
 as is and censor people at a reported infection before vaccination.
 Option (a) gives cleaner ground truth but needs the datasets
 regenerating. Not yet decided.
+
+*Note added 2026-11-26:* decided on option (b), because infectious and
+recovered people are vaccinated in real campaigns too. See [entry
+12](#e12).
+
+------------------------------------------------------------------------
+
+## 12. 2026-11-26 — Censoring people infected before vaccination
+
+**Decision.** HERMES stays as it is (entry 11): real campaigns also
+vaccinate people who are infectious or already recovered, so the
+analysis has to deal with them. People reported *before* their
+vaccination date were already handled, because
+[`counting_process()`](https://kylieainslie.github.io/surviver/reference/counting_process.md)
+ends follow-up at the report. The problem is people infected before
+vaccination but reported *after* it, who are counted as vaccine
+failures.
+
+**What was added.**
+
+- `counting_process(censor_at_vaccination = ids)`: the listed people’s
+  follow-up ends at their vaccination date, unvaccinated and without an
+  event.
+- `reported_soon_after_vaccination(pop, window)`: an observable rule,
+  listing vaccinated people reported 1 to `window` days after
+  vaccination. An infection that happened before vaccination must be
+  reported within roughly incubation (mean about 5 days) plus reporting
+  delay (0–6 days).
+
+**Question.** How many cases among vaccinated people were infected
+before vaccination, how much do they bias VE(t), and how well does an
+observable window rule work compared with knowing the truth?
+
+**Method.** For both scenarios, four versions of the entry 7 analysis:
+
+- **none**: no censoring (as before);
+- **oracle**: censor people who were infectious or recovered when
+  vaccinated (true state from the HERMES snapshots, as in entry 11);
+- **window 7** and **window 14**: censor anyone reported within 7 or 14
+  days after vaccination.
+
+Each was fitted with the Stan model and with the per-day-baseline GLM
+(model B from entry 9).
+
+**Script.** `dev/checks/2026-11-26_06_censor_prior_infection.R` (about
+10 minutes; needs a local `ibm_hermes` clone).
+
+**Results.**
+
+*How many, and who each rule catches* (among vaccinated people reported
+after vaccination and by day 180):
+
+| Scenario | Cases among vaccinated | Infected before vaccination | Rule | Censored | … truly infected before | … genuine post-vaccination cases | Infected-before missed |
+|----|----|----|----|----|----|----|----|
+| Waning | 182 | 34 (19%) | oracle | 34 | 34 | 0 | 0 |
+|  |  |  | window 7 | 25 | 21 | 4 | 13 |
+|  |  |  | window 14 | 49 | 24 | 25 | 10 |
+| No waning | 118 | 36 (31%) | oracle | 36 | 36 | 0 | 0 |
+|  |  |  | window 7 | 31 | 25 | 6 | 11 |
+|  |  |  | window 14 | 53 | 33 | 20 | 3 |
+
+*Stan: mean error (posterior median − true VE) by days since
+vaccination:*
+
+| Scenario  | Rule      | 1–6   | 7–13  | 14–29 | 30–44 | 45–59 | 60–89 | 90–119 | 120+  | Coverage |
+|-----------|-----------|-------|-------|-------|-------|-------|-------|--------|-------|----------|
+| Waning    | none      | +0.02 | −0.25 | −0.11 | +0.09 | +0.08 | +0.05 | −0.14  | −0.28 | 0.93     |
+|           | oracle    | +0.47 | −0.00 | −0.07 | +0.10 | +0.11 | +0.08 | −0.10  | −0.23 | 0.88     |
+|           | window 7  | +0.55 | −0.02 | −0.07 | +0.10 | +0.08 | +0.05 | −0.14  | −0.27 | 0.92     |
+|           | window 14 | +0.70 | +0.31 | +0.05 | +0.12 | +0.09 | +0.05 | −0.14  | −0.27 | 0.91     |
+| No waning | none      | −0.09 | −0.30 | −0.16 | −0.06 | −0.06 | +0.02 | +0.02  | +0.06 | 0.93     |
+|           | oracle    | +0.53 | +0.07 | −0.09 | −0.07 | −0.06 | −0.00 | −0.01  | +0.02 | 0.89     |
+|           | window 7  | +0.63 | −0.05 | −0.13 | −0.05 | −0.06 | +0.03 | +0.02  | +0.09 | 0.89     |
+|           | window 14 | +0.71 | +0.31 | −0.03 | −0.05 | −0.05 | +0.02 | +0.02  | +0.08 | 0.93     |
+
+The per-day-baseline GLM agreed. After oracle censoring only 3
+vaccinated cases remain at days 1–6 in each scenario; window 7 leaves
+none there, and window 14 none before day 14.
+
+![Posterior median VE over the first 60 days since vaccination under no
+censoring, oracle censoring, and 7- and 14-day window rules; censoring
+removes the early underestimate from about day 7, while the first week
+becomes unreliable.](figures/2026-11-26_06_censor_prior_infection.png)
+
+**Observations.**
+
+1.  People infected before vaccination are a large share of cases among
+    vaccinated people (19% and 31%), far more than the recovered people
+    alone counted in entry 11 (12 and 15 cases): most were infectious
+    when vaccinated.
+2.  They cause most of the underestimate at days 7–29 that entry 7
+    attributed to the reporting lag. With oracle censoring, the error at
+    days 7–13 falls from −0.25 to 0.00 (waning) and from −0.30 to +0.07
+    (no waning).
+3.  **Days 1–6 become unusable after censoring.** Because time since
+    vaccination is measured to the report date, someone infected after
+    vaccination can hardly be reported within a few days. Once prior
+    infections are removed, the first week has almost no cases and VE
+    looks close to 1. In this period the curve reflects the prior on the
+    first day, not data.
+4.  **Window 7** captures 62–69% of prior infections, wrongly censors
+    only 4–6 genuine cases, and matches the oracle from day 7 onward.
+    **Window 14** catches more prior infections but throws away 20–25
+    genuine cases, empties days 7–13, and overstates VE there (+0.31).
+5.  No rule changes the late (90+ day) underestimate, so prior infection
+    is not its cause (consistent with entries 8–9).
+
+**Conclusion.** Use `reported_soon_after_vaccination(pop, 7)` with
+`counting_process(censor_at_vaccination = )` in the standard analysis,
+and report VE from day 7 after vaccination. The best window depends on
+the incubation and reporting-delay distributions, which in real data
+would come from the literature or surveillance. Revisit once the method
+handles delays (estimating time since vaccination at infection rather
+than at report), which should make the first week estimable again.
 
 ------------------------------------------------------------------------
 

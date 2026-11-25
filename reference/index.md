@@ -18,6 +18,8 @@ case records.
   : Daily cases and population at risk
 - [`counting_process()`](https://kylieainslie.github.io/surviver/reference/counting_process.md)
   : Counting-process data with time-varying vaccination
+- [`reported_soon_after_vaccination()`](https://kylieainslie.github.io/surviver/reference/reported_soon_after_vaccination.md)
+  : People reported soon after vaccination
 - [`expand_person_days()`](https://kylieainslie.github.io/surviver/reference/expand_person_days.md)
   : Expand counting-process data to person-days
 

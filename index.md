@@ -61,14 +61,18 @@ inc  <- daily_incidence(pop)
 prev <- daily_prevalence(inc, duration_infection = 7, reporting_delay = 2)
 foi  <- force_of_infection(prev, age_group_sizes(pop), contact_matrix = polymod_nl)
 
-# person-days split at vaccination, aggregated for Stan
-pd <- expand_person_days(counting_process(pop))
+# person-days split at vaccination, aggregated for Stan. People reported
+# within 7 days of vaccination are censored at vaccination, since they were
+# probably infected before it
+early <- reported_soon_after_vaccination(pop, window = 7)
+pd <- expand_person_days(counting_process(pop, censor_at_vaccination = early))
 sd <- make_stan_data(pd, foi)
 
-# fit and plot against the true curve
+# fit and plot against the true curve (VE is not estimable for the
+# first 7 days after vaccination once early cases are censored)
 fit <- fit_ve(sd, seed = 42)
 ve  <- extract_ve(fit)
-plot_ve(ve, truth = ve_sim_waning$params)
+plot_ve(ve[ve$days_since_vax > 7, ], truth = ve_sim_waning$params)
 ```
 
 To use your own data, pass
@@ -84,7 +88,7 @@ a folder containing `demographic_data.rds`, `vaccination_data.rds` and
 |----|----|
 | Prepare data | [`ve_population()`](https://kylieainslie.github.io/surviver/reference/ve_population.md), [`sample_cohort()`](https://kylieainslie.github.io/surviver/reference/sample_cohort.md), [`add_age_group()`](https://kylieainslie.github.io/surviver/reference/add_age_group.md) |
 | Exposure | [`daily_incidence()`](https://kylieainslie.github.io/surviver/reference/daily_incidence.md), [`daily_prevalence()`](https://kylieainslie.github.io/surviver/reference/daily_prevalence.md), [`force_of_infection()`](https://kylieainslie.github.io/surviver/reference/force_of_infection.md), [`age_group_sizes()`](https://kylieainslie.github.io/surviver/reference/age_group_sizes.md) |
-| Survival data | [`counting_process()`](https://kylieainslie.github.io/surviver/reference/counting_process.md), [`expand_person_days()`](https://kylieainslie.github.io/surviver/reference/expand_person_days.md), [`make_stan_data()`](https://kylieainslie.github.io/surviver/reference/make_stan_data.md) |
+| Survival data | [`counting_process()`](https://kylieainslie.github.io/surviver/reference/counting_process.md), [`reported_soon_after_vaccination()`](https://kylieainslie.github.io/surviver/reference/reported_soon_after_vaccination.md), [`expand_person_days()`](https://kylieainslie.github.io/surviver/reference/expand_person_days.md), [`make_stan_data()`](https://kylieainslie.github.io/surviver/reference/make_stan_data.md) |
 | Fit and summarise | [`fit_ve()`](https://kylieainslie.github.io/surviver/reference/fit_ve.md), [`extract_ve()`](https://kylieainslie.github.io/surviver/reference/extract_ve.md), [`plot_ve()`](https://kylieainslie.github.io/surviver/reference/plot_ve.md) |
 | Validation | [`true_ve()`](https://kylieainslie.github.io/surviver/reference/true_ve.md), [`simulate_counts()`](https://kylieainslie.github.io/surviver/reference/simulate_counts.md), [`contact_matrix_hermes()`](https://kylieainslie.github.io/surviver/reference/contact_matrix_hermes.md) |
 

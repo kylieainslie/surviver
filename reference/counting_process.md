@@ -11,6 +11,7 @@ reported after `study_end` are censored at `study_end`.
 counting_process(
   cohort,
   study_end = attr(cohort, "study_end"),
+  censor_at_vaccination = NULL,
   age_breaks = default_age_breaks,
   age_labels = default_age_labels
 )
@@ -29,6 +30,12 @@ counting_process(
 
   Last day of follow-up.
 
+- censor_at_vaccination:
+
+  Optional vector of `ind_id`s to censor at their vaccination date.
+  Ignored for people who are unvaccinated or whose follow-up ends before
+  vaccination.
+
 - age_breaks, age_labels:
 
   Passed to [`cut()`](https://rdrr.io/r/base/cut.html) (left-closed
@@ -40,3 +47,14 @@ A data frame from
 [`survival::tmerge()`](https://rdrr.io/pkg/survival/man/tmerge.html)
 with `ind_id`, `age`, `age_group`, `sex`, `time_of_vaccination`,
 `tstart`, `tstop`, `event`, `vax_status`.
+
+## Details
+
+People reported before their vaccination date are already handled: their
+follow-up ends at the report, so they never count as vaccinated. People
+infected before vaccination but reported after it would otherwise count
+as vaccinated cases. `censor_at_vaccination` lets these be censored at
+their vaccination date instead (follow-up ends unvaccinated, no event).
+Which people to censor is the analyst's choice; see
+[`reported_soon_after_vaccination()`](https://kylieainslie.github.io/surviver/reference/reported_soon_after_vaccination.md)
+for a rule based only on observed dates.

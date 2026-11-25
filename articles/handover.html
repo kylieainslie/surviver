@@ -88,16 +88,21 @@ and distinguishes waning from no waning (lab notebook entry 7).</li>
 </ul>
 <p><strong>Known limitations</strong> (details in the lab notebook):</p>
 <ul>
-<li>The estimate lags the truth by about a week, because time since
-vaccination is measured to the report date, not the infection date
-(entry 7).</li>
+<li>Time since vaccination is measured to the report date, not the
+infection date, so the estimate lags the truth (entry 7). People
+infected before vaccination but reported after it must be censored. The
+standard analysis now uses
+<code>counting_process(censor_at_vaccination = reported_soon_after_vaccination(pop, 7))</code>,
+which makes VE for the first 7 days after vaccination not estimable
+(entry 12).</li>
 <li>Late VE (90+ days) is underestimated in the waning scenario. About
 half of this comes from calendar time being confounded with time since
 vaccination (entry 9).</li>
 <li>In the current simulations the FoI adds no precision, because
 vaccination is random with respect to exposure (entry 10).</li>
-<li>HERMES resets the immunity of recovered people when it vaccinates
-them (entry 11).</li>
+<li>HERMES vaccinates infectious and recovered people and resets their
+immunity (entry 11). This is deliberate: real campaigns vaccinate them
+too, so the analysis censors them instead (entry 12).</li>
 </ul>
 </div>
 <div class="section level2">
@@ -467,7 +472,9 @@ replicate. A sketch:</p>
 <span>  <span class="va">pop</span>  <span class="op">&lt;-</span> <span class="fu"><a href="../reference/ve_population.html">ve_population</a></span><span class="op">(</span><span class="va">sim</span><span class="op">)</span></span>
 <span>  <span class="va">prev</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/daily_prevalence.html">daily_prevalence</a></span><span class="op">(</span><span class="fu"><a href="../reference/daily_incidence.html">daily_incidence</a></span><span class="op">(</span><span class="va">pop</span><span class="op">)</span><span class="op">)</span></span>
 <span>  <span class="va">foi</span>  <span class="op">&lt;-</span> <span class="fu"><a href="../reference/force_of_infection.html">force_of_infection</a></span><span class="op">(</span><span class="va">prev</span>, <span class="fu"><a href="../reference/age_group_sizes.html">age_group_sizes</a></span><span class="op">(</span><span class="va">pop</span><span class="op">)</span><span class="op">)</span></span>
-<span>  <span class="va">sd</span>   <span class="op">&lt;-</span> <span class="fu"><a href="../reference/make_stan_data.html">make_stan_data</a></span><span class="op">(</span><span class="fu"><a href="../reference/expand_person_days.html">expand_person_days</a></span><span class="op">(</span><span class="fu"><a href="../reference/counting_process.html">counting_process</a></span><span class="op">(</span><span class="va">pop</span><span class="op">)</span><span class="op">)</span>, <span class="va">foi</span><span class="op">)</span></span>
+<span>  <span class="va">cp</span>   <span class="op">&lt;-</span> <span class="fu"><a href="../reference/counting_process.html">counting_process</a></span><span class="op">(</span><span class="va">pop</span>, censor_at_vaccination <span class="op">=</span></span>
+<span>                             <span class="fu"><a href="../reference/reported_soon_after_vaccination.html">reported_soon_after_vaccination</a></span><span class="op">(</span><span class="va">pop</span>, <span class="fl">7</span><span class="op">)</span><span class="op">)</span></span>
+<span>  <span class="va">sd</span>   <span class="op">&lt;-</span> <span class="fu"><a href="../reference/make_stan_data.html">make_stan_data</a></span><span class="op">(</span><span class="fu"><a href="../reference/expand_person_days.html">expand_person_days</a></span><span class="op">(</span><span class="va">cp</span><span class="op">)</span>, <span class="va">foi</span><span class="op">)</span></span>
 <span>  <span class="va">ve</span>   <span class="op">&lt;-</span> <span class="fu"><a href="../reference/extract_ve.html">extract_ve</a></span><span class="op">(</span><span class="fu"><a href="../reference/fit_ve.html">fit_ve</a></span><span class="op">(</span><span class="va">sd</span>, seed <span class="op">=</span> <span class="va">seed</span>, refresh <span class="op">=</span> <span class="fl">0</span>, show_messages <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span><span class="op">)</span></span>
 <span>  <span class="va">ve</span><span class="op">$</span><span class="va">truth</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/true_ve.html">true_ve</a></span><span class="op">(</span><span class="va">ve</span><span class="op">$</span><span class="va">days_since_vax</span>, <span class="va">sim</span><span class="op">$</span><span class="va">params</span><span class="op">)</span></span>
 <span>  <span class="va">ve</span><span class="op">$</span><span class="va">seed</span>  <span class="op">&lt;-</span> <span class="va">seed</span></span>
@@ -493,11 +500,12 @@ call in <code>lib/ibm_core.R</code> (look for
 <span><span class="va">pop_data</span><span class="op">$</span><span class="va">time_of_vaccination</span><span class="op">[</span><span class="va">id_vaccinated</span><span class="op">]</span> <span class="op">&lt;-</span> <span class="va">nprev_days</span></span></code></pre></div>
 <ul>
 <li>
-<strong>Stop resetting immunity in recovered people</strong> (lab
-notebook entry 11): for people in state <code>R</code>, record
-<code>time_of_vaccination</code> but leave <code>health</code> as
-<code>R</code>. Decide whether infectious people (<code>I</code>) should
-be vaccinated at all.</li>
+<strong>Vaccinating infectious and recovered people</strong> is kept
+on purpose, because real campaigns do this too (decided 2026-11-26; lab
+notebook entries 11 and 12). The analysis censors them instead. If you
+ever want recovered people to keep their immunity, record
+<code>time_of_vaccination</code> for state <code>R</code> but leave
+<code>health</code> as <code>R</code>.</li>
 <li>
 <strong>Targeted vaccination</strong> (e.g. oldest first): replace
 <code><a href="https://rdrr.io/r/base/sample.html" class="external-link">sample()</a></code> with a selection that prioritises by
@@ -506,8 +514,8 @@ be vaccinated at all.</li>
 selection when it is <code>NULL</code>, so other scenarios are
 unchanged.</li>
 </ul>
-<p>Both changes alter the simulated data, so regenerate the datasets and
-add a lab-notebook entry.</p>
+<p>Changes to vaccination alter the simulated data, so regenerate the
+datasets and add a lab-notebook entry.</p>
 </div>
 </div>
 <div class="section level2">
@@ -526,12 +534,16 @@ name to <code><a href="../reference/ve_stan_file.html">ve_stan_file()</a></code>
 to remove the calendar-time part of the late underestimate (entry
 9).</li>
 <li>
-<strong>Decide on vaccination of recovered people</strong> in HERMES
-(entry 11) and, if changing it, regenerate the datasets.</li>
+<strong>Censor people infected before vaccination</strong> in every
+analysis:
+<code>counting_process(pop, censor_at_vaccination = reported_soon_after_vaccination(pop, 7))</code>,
+and report VE from day 7 (entry 12). The 7-day window suits HERMES’s
+incubation and reporting delay; for real data, base it on published
+incubation and delay distributions.</li>
 <li>
 <strong>Replicate simulations</strong> (above) to measure bias and
-coverage properly. Only then judge whether a frailty term is
-needed.</li>
+coverage properly, including the choice of censoring window. Only then
+judge whether a frailty term is needed.</li>
 <li>
 <strong>Targeted-vaccination scenario</strong>, to test the
 project’s premise that the FoI improves VE estimation when exposure

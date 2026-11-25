@@ -38,11 +38,13 @@
     </div>
 
     <div class="section level2">
-<h2 class="pkg-version" data-toc-text="development version" id="surviver-development-version">surviver (development version)<a class="anchor" aria-label="anchor" href="#surviver-development-version"></a></h2>
+<h2 class="pkg-version" data-toc-text="0.0.0.9000" id="surviver-0009000">surviver 0.0.0.9000<a class="anchor" aria-label="anchor" href="#surviver-0009000"></a></h2>
 <ul><li>Initial package, consolidating the Group D analysis from the Lorentz Center workshop (June 2026).</li>
 <li>Data preparation: <code><a href="../reference/ve_population.html">ve_population()</a></code>, <code><a href="../reference/sample_cohort.html">sample_cohort()</a></code>, <code><a href="../reference/daily_incidence.html">daily_incidence()</a></code>, <code><a href="../reference/daily_prevalence.html">daily_prevalence()</a></code>, <code><a href="../reference/counting_process.html">counting_process()</a></code>, <code><a href="../reference/expand_person_days.html">expand_person_days()</a></code>.</li>
 <li>Exposure: <code><a href="../reference/force_of_infection.html">force_of_infection()</a></code> (age-structured or overall), <code><a href="../reference/age_group_sizes.html">age_group_sizes()</a></code>, <code><a href="../reference/contact_matrix_hermes.html">contact_matrix_hermes()</a></code>.</li>
 <li>Model: <code><a href="../reference/make_stan_data.html">make_stan_data()</a></code>, <code><a href="../reference/fit_ve.html">fit_ve()</a></code> with non-centred (default) and centred Stan models, <code><a href="../reference/extract_ve.html">extract_ve()</a></code>, <code><a href="../reference/plot_ve.html">plot_ve()</a></code>.</li>
+<li>
+<code>counting_process(censor_at_vaccination = )</code> and <code><a href="../reference/reported_soon_after_vaccination.html">reported_soon_after_vaccination()</a></code> to censor people infected before vaccination but reported after it.</li>
 <li>Validation helpers: <code><a href="../reference/true_ve.html">true_ve()</a></code>, <code><a href="../reference/simulate_counts.html">simulate_counts()</a></code>.</li>
 <li>Datasets: <code>ve_sim_waning</code>, <code>ve_sim_no_waning</code> (HERMES simulations with known VE(t)) and <code>polymod_nl</code>.</li>
 <li>Lab notebook article recording development and validation checks.</li>

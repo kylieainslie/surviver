@@ -1,6 +1,6 @@
 # Changelog
 
-## surviver (development version)
+## surviver 0.0.0.9000
 
 - Initial package, consolidating the Group D analysis from the Lorentz
   Center workshop (June 2026).
@@ -22,6 +22,9 @@
   with non-centred (default) and centred Stan models,
   [`extract_ve()`](https://kylieainslie.github.io/surviver/reference/extract_ve.md),
   [`plot_ve()`](https://kylieainslie.github.io/surviver/reference/plot_ve.md).
+- `counting_process(censor_at_vaccination = )` and
+  [`reported_soon_after_vaccination()`](https://kylieainslie.github.io/surviver/reference/reported_soon_after_vaccination.md)
+  to censor people infected before vaccination but reported after it.
 - Validation helpers:
   [`true_ve()`](https://kylieainslie.github.io/surviver/reference/true_ve.md),
   [`simulate_counts()`](https://kylieainslie.github.io/surviver/reference/simulate_counts.md).
