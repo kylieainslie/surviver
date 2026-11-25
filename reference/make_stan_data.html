@@ -70,9 +70,58 @@ Defaults to the longest observed.</p></dd>
 </dl></div>
     <div class="section level2">
     <h2 id="value">Value<a class="anchor" aria-label="anchor" href="#value"></a></h2>
-    <p>A list with <code>data</code> (the list passed to Stan) and <code>cells</code> (the
-aggregated data frame, for inspection).</p>
-    </div>
+    <p>A list with two elements:</p>
+<p><strong><code>cells</code></strong>: a tibble with one row per cell, i.e. per combination of
+age group, vaccination status, study day and day since vaccination that
+has any person-time:</p><dl><dt><code>age_group</code></dt>
+<dd><p>Age group (factor).</p></dd>
+
+<dt><code>vax_status</code></dt>
+<dd><p>1 if the person-days are after vaccination, 0 if
+before vaccination or never vaccinated.</p></dd>
+
+<dt><code>day</code></dt>
+<dd><p>Study (calendar) day.</p></dd>
+
+<dt><code>tvax_bin</code></dt>
+<dd><p>Day-since-vaccination bin: 1 for unvaccinated
+person-days, <code>t + 1</code> for day <code>t</code> after vaccination.</p></dd>
+
+<dt><code>Y</code></dt>
+<dd><p>Number of reported cases (events) in the cell.</p></dd>
+
+<dt><code>n_persdays</code></dt>
+<dd><p>Person-days at risk in the cell.</p></dd>
+
+<dt><code>Ibar</code></dt>
+<dd><p>Force-of-infection offset for that day and age group,
+from <code>foi</code>.</p></dd>
+
+
+</dl><p><strong><code>data</code></strong>: the list passed to Stan, built from <code>cells</code> (same row
+order):</p><dl><dt><code>N</code></dt>
+<dd><p>Number of cells.</p></dd>
+
+<dt><code>K</code></dt>
+<dd><p>Number of age groups (declared in the Stan models but not
+used).</p></dd>
+
+<dt><code>T_vax</code></dt>
+<dd><p>Number of day-since-vaccination bins,
+<code>max_days_since_vax + 1</code>.</p></dd>
+
+<dt><code>Y</code></dt>
+<dd><p><code>cells$Y</code>.</p></dd>
+
+<dt><code>log_Ibar</code>, <code>log_persdays</code></dt>
+<dd><p>Logs of <code>cells$Ibar</code> and
+<code>cells$n_persdays</code>, used as offsets.</p></dd>
+
+<dt><code>vax</code>, <code>tvax_bin</code></dt>
+<dd><p><code>cells$vax_status</code> and <code>cells$tvax_bin</code>.</p></dd>
+
+
+</dl></div>
     <div class="section level2">
     <h2 id="details">Details<a class="anchor" aria-label="anchor" href="#details"></a></h2>
     <p>Days since vaccination are binned by day: bin 1 is unvaccinated, bin
